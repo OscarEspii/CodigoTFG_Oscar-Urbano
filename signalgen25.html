@@ -1,0 +1,3227 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arduino Signal Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #080a0e;
+  --s1:       #0f1218;
+  --s2:       #161b26;
+  --s3:       #1e2535;
+  --border:   rgba(255,255,255,0.06);
+  --border2:  rgba(255,255,255,0.11);
+  --text:     #dde3f0;
+  --muted:    #566175;
+  --dim:      #3a4256;
+  --sin:      #00e5b0;
+  --sin-dim:  rgba(0,229,176,0.12);
+  --tri:      #f59e0b;
+  --dbg:      #38bdf8;
+  --tri-dim:  rgba(245,158,11,0.12);
+  --pul:      #f43f5e;
+  --pul-dim:  rgba(244,63,94,0.12);
+  --old:      #e879f9;
+  --old-dim:  rgba(232,121,249,0.12);
+  --ok:       #4ade80;
+  --err:      #f43f5e;
+  --warn:     #fbbf24;
+  --cfg:      #a78bfa;
+  --cfg-dim:  rgba(167,139,250,0.12);
+  --blue:     #38bdf8;
+  --mono:     'IBM Plex Mono', monospace;
+  --display:  'Bebas Neue', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:32px 16px 48px}
+.app{width:100%;max-width:1000px}
+
+/* HEADER */
+.header{margin-bottom:28px}
+.logo{font-family:var(--display);font-size:70px;letter-spacing:0.04em;color:#fff;line-height:1}
+.logo span{color:var(--sin)}
+.tagline{font-size:13.8px;color:var(--muted);letter-spacing:0.08em;margin-top:4px}
+.hr{height:1px;background:linear-gradient(90deg,var(--sin),var(--tri),var(--pul),transparent);opacity:0.25;margin:14px 0}
+
+/* STATUS */
+.status-row{display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--s1);border:1px solid var(--border);border-radius:8px;margin-bottom:16px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s,box-shadow .3s}
+.dot.connected{background:var(--ok);box-shadow:0 0 7px rgba(74,222,128,.4)}
+.dot.error{background:var(--err);box-shadow:0 0 7px rgba(244,63,94,.4)}
+.dot.connecting{background:var(--warn);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.status-txt{font-size:13.8px;color:var(--muted);flex:1}
+.status-txt b{color:var(--text);font-weight:500}
+.btn-conn{font-family:var(--mono);font-size:13.8px;font-weight:500;padding:5px 13px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-conn:hover{border-color:var(--sin);color:var(--sin);background:var(--sin-dim)}
+.btn-conn.disc{border-color:var(--err);color:var(--err)}
+.btn-conn.disc:hover{background:rgba(244,63,94,.1)}
+
+/* TOOLBAR */
+.toolbar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px}
+.tab{padding:10px 8px;border-radius:8px;border:1px solid var(--border);background:var(--s1);cursor:pointer;transition:all .18s;text-align:center;position:relative;overflow:hidden}
+.tab-icon{width:100%;height:44px;margin-bottom:8px}
+.tab-name{font-size:16.2px;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)}
+.tab-sub{font-size:12.5px;color:var(--dim);margin-top:2px;letter-spacing:0.05em}
+.tab:hover{border-color:var(--border2)}
+.tab.sin.active{border-color:var(--sin);background:var(--sin-dim)}
+.tab.tri.active{border-color:var(--tri);background:var(--tri-dim)}
+.tab.pul.active{border-color:var(--pul);background:var(--pul-dim)}
+.tab.old.active{border-color:var(--old);background:var(--old-dim)}
+.tab.sin.active .tab-name{color:var(--sin)}
+.tab.tri.active .tab-name{color:var(--tri)}
+.tab.pul.active .tab-name{color:var(--pul)}
+.tab.old.active .tab-name{color:var(--old)}
+.tab-indicator{position:absolute;bottom:0;left:0;right:0;height:2px;transform:scaleX(0);transition:transform .2s}
+.tab.sin .tab-indicator{background:var(--sin)}
+.tab.tri .tab-indicator{background:var(--tri)}
+.tab.pul .tab-indicator{background:var(--pul)}
+.tab.old .tab-indicator{background:var(--old)}
+/* Pestañas bloqueadas mientras está seleccionado el panel del chip antiguo */
+.tab.locked{opacity:.4}
+.tab.locked .tab-sub::after{content:' · BLOQUEADO';color:var(--warn)}
+.tab.active .tab-indicator{transform:scaleX(1)}
+
+/* MAIN PANEL */
+.panel{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+
+/* CHART */
+.chart-wrap{padding:16px 16px 0;border-bottom:1px solid var(--border)}
+canvas.sig-canvas{width:100%;height:200px;display:block}
+
+/* PARAMS */
+.params-area{padding:18px}
+.params-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.params-grid.cols3{grid-template-columns:repeat(3,1fr)}
+.param-block{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:16px;transition:border-color .2s}
+.param-block:focus-within{border-color:var(--border2)}
+.param-block.sin-focus:focus-within{border-color:var(--sin)}
+.param-block.tri-focus:focus-within{border-color:var(--tri)}
+.param-block.pul-focus:focus-within{border-color:var(--pul)}
+.param-block.old-focus:focus-within{border-color:var(--old)}
+.param-block.dbg-focus:focus-within{border-color:var(--dbg)}
+.param-block.dbg-disabled{opacity:.4}
+.pb-label{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.pb-val-row{display:flex;align-items:baseline;gap:4px;margin-bottom:8px}
+.pb-num{font-family:var(--display);font-size:45px;color:#fff;line-height:1}
+.pb-unit{font-size:12.5px;color:var(--muted)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;outline:none;cursor:pointer;background:var(--border2)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;height:17px;border-radius:50%;transition:transform .12s}
+.sin-range::-webkit-slider-thumb{background:var(--sin);box-shadow:0 0 5px rgba(0,229,176,.5)}
+.tri-range::-webkit-slider-thumb{background:var(--tri);box-shadow:0 0 5px rgba(245,158,11,.5)}
+.pul-range::-webkit-slider-thumb{background:var(--pul);box-shadow:0 0 5px rgba(244,63,94,.5)}
+.old-range::-webkit-slider-thumb{background:var(--old);box-shadow:0 0 5px rgba(232,121,249,.5)}
+.dbg-range::-webkit-slider-thumb{background:var(--dbg);box-shadow:0 0 5px rgba(56,189,248,.5)}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+.pb-bounds{display:flex;justify-content:space-between;font-size:11.2px;color:var(--dim);margin-top:4px}
+/* Nota fija bajo un deslizador (el porqué del límite inferior de T1) */
+.pb-note{margin-top:9px;padding:7px 9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28);border-radius:6px;font-size:11.2px;line-height:1.55;color:var(--warn)}
+/* Nota fija del panel del chip antiguo */
+.old-note{padding:9px 11px;margin-bottom:12px;background:var(--old-dim);border:1px solid rgba(232,121,249,.28);border-radius:7px;font-size:11.9px;line-height:1.6;color:var(--old)}
+
+/* TRAMA PREVIEW */
+.trama-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px}
+.trama-lbl{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap}
+.trama-val{font-size:16.2px;font-weight:500;flex:1}
+.trama-val.sin{color:var(--sin)}
+.trama-val.tri{color:var(--tri)}
+.trama-val.pul{color:var(--pul)}
+.trama-val.old{color:var(--old)}
+
+/* SEND BUTTON */
+.btn-send{width:100%;padding:16px;font-family:var(--mono);font-size:18.8px;font-weight:600;letter-spacing:.06em;border-radius:9px;border:none;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;margin-bottom:14px}
+.btn-send.sin{background:var(--sin);color:#000}
+.btn-send.tri{background:var(--tri);color:#000}
+.btn-send.pul{background:var(--pul);color:#fff}
+.btn-send.old{background:var(--old);color:#000}
+.btn-send:not(:disabled):hover{filter:brightness(1.1);box-shadow:0 0 18px rgba(0,0,0,.4)}
+.btn-send:not(:disabled):active{transform:scale(0.98)}
+.btn-send:disabled{background:var(--s2);color:var(--muted);cursor:not-allowed;border:1px solid var(--border)}
+.btn-send.flash::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.2);animation:fl .3s ease}
+@keyframes fl{0%{opacity:1}100%{opacity:0}}
+
+/* LOG */
+.log-panel{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.log-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
+.log-title{font-size:11.2px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.log-acts{display:flex;gap:10px}
+.log-btn{font-family:var(--mono);font-size:12.5px;color:var(--muted);background:none;border:none;cursor:pointer;transition:color .15s}
+.log-btn:hover{color:var(--text)}
+.log-btn:disabled{opacity:0.35;cursor:not-allowed;pointer-events:none}
+.btn-export-green{color:#0a0a0a;background:var(--ok);padding:5px 12px;border-radius:6px;font-weight:600}
+.btn-export-green:hover{color:#0a0a0a;background:var(--ok);filter:brightness(1.08)}
+body.light .btn-export-green{color:#0a0a0a}
+.log-body{padding:10px 14px;height:180px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.log-body::-webkit-scrollbar{width:3px}
+.log-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.log-line{display:flex;gap:10px;font-size:12.5px;padding:1px 0;border-bottom:1px solid rgba(255,255,255,.025)}
+.log-t{color:var(--muted);flex-shrink:0}
+.log-m.sent-sin{color:var(--sin)}
+.log-m.sent-tri{color:var(--tri)}
+.log-m.sent-pul{color:var(--pul)}
+.log-m.sent-old{color:var(--old)}
+.log-m.ok{color:var(--ok)}
+.log-m.err{color:var(--err)}
+.log-m.info{color:var(--blue)}
+.log-m.warn{color:var(--warn)}
+
+/* WARN BOX */
+.warn-no-serial{display:none;padding:10px 14px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.25);border-radius:8px;font-size:13.8px;color:var(--warn);margin-bottom:14px;line-height:1.6}
+.warn-no-serial a{color:var(--warn)}
+
+.tab.cfg.active{border-color:var(--cfg);background:var(--cfg-dim)}
+.tab.cfg.active .tab-name{color:var(--cfg)}
+.tab.cfg .tab-indicator{background:var(--cfg)}
+
+.tab.dbg.active{border-color:#38bdf8;background:rgba(56,189,248,0.12)}
+.tab.dbg.active .tab-name{color:#38bdf8}
+.tab.dbg .tab-indicator{background:#38bdf8}
+
+/* CONFIG PANEL */
+.cfg-panel{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;display:none}
+.cfg-section{padding:18px;border-bottom:1px solid var(--border)}
+.cfg-section:last-child{border-bottom:none}
+.cfg-section-title{font-size:11.2px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.cfg-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* Memristor selector */
+.mem-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.mem-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden}
+.mem-card:hover{border-color:var(--border2)}
+.mem-card.active-m1{border-color:var(--cfg);background:var(--cfg-dim)}
+.mem-card.active-m2{border-color:var(--sin);background:var(--sin-dim)}
+.mem-card-badge{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.mem-card.active-m1 .mem-card-badge{color:var(--cfg)}
+.mem-card.active-m2 .mem-card-badge{color:var(--sin)}
+.mem-card-title{font-family:var(--display);font-size:32.5px;color:#fff;line-height:1;margin-bottom:4px}
+.mem-card-desc{font-size:11.2px;color:var(--dim);line-height:1.5}
+.mem-card-bit{position:absolute;top:10px;right:12px;font-size:11.2px;font-family:var(--display);font-size:22.5px;color:var(--border2)}
+.mem-card.active-m1 .mem-card-bit{color:var(--cfg)}
+.mem-card.active-m2 .mem-card-bit{color:var(--sin)}
+
+/* Direction selector */
+.dir-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.dir-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .18s;position:relative}
+.dir-card:hover{border-color:var(--border2)}
+.dir-card.active-pos{border-color:var(--ok);background:rgba(74,222,128,0.08)}
+.dir-card.active-neg{border-color:var(--err);background:rgba(244,63,94,0.08)}
+.dir-card-badge{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:6px}
+.dir-card.active-pos .dir-card-badge{color:var(--ok)}
+.dir-card.active-neg .dir-card-badge{color:var(--err)}
+.dir-card-title{font-family:var(--display);font-size:27.5px;color:#fff;line-height:1;margin-bottom:4px}
+.dir-card-desc{font-size:11.2px;color:var(--dim);line-height:1.5}
+.dir-card-icon{position:absolute;top:10px;right:12px;font-size:25px}
+
+/* Intensity selector */
+.int-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.int-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;cursor:pointer;transition:all .18s;text-align:center}
+.int-card:hover{border-color:var(--border2)}
+.int-card.active-int{border-color:var(--warn);background:rgba(251,191,36,0.1)}
+.int-card-mult{font-family:var(--display);font-size:27.5px;color:#fff;margin-bottom:3px}
+.int-card.active-int .int-card-mult{color:var(--warn)}
+.int-card-bits{font-size:11.2px;color:var(--dim);letter-spacing:.05em;margin-bottom:4px}
+.int-card.active-int .int-card-bits{color:var(--warn)}
+.int-card-bar{height:3px;border-radius:2px;background:var(--border2);margin-top:6px;overflow:hidden}
+.int-card-fill{height:100%;border-radius:2px;background:var(--warn);transition:width .2s}
+.int-card.active-int .int-card-bar{background:rgba(251,191,36,0.2)}
+
+/* Calibración K de la fuente de corriente */
+.k-switch{display:flex;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:6px;margin-bottom:14px}
+.k-switch-opt{flex:1;padding:16px 10px;text-align:center;font-family:var(--display);font-size:26px;letter-spacing:.05em;color:var(--muted);border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all .2s;user-select:none}
+.k-switch-opt:hover{color:var(--text);border-color:var(--border2)}
+.k-switch-opt.k-sel{color:var(--cfg);border-color:var(--cfg);background:var(--cfg-dim);box-shadow:0 0 22px var(--cfg-dim)}
+/* Barra de la resistencia patrón: es común a los cuatro rangos porque se
+   cambia físicamente entre medidas (la misma R no sirve para todos) */
+.k-cal-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.k-cal-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.k-input-r{width:104px}
+.k-cal-note{flex:1 1 100%;font-size:10.5px;color:var(--dim);line-height:1.55}
+/* La rejilla ya NO se esconde con el conmutador: para poder calibrar habría
+   que activar antes una K calculada que todavía no existe. El conmutador
+   sigue decidiendo qué K se usa; aquí solo cambia el color del resultado. */
+.k-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.k-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center}
+.k-card-mult{font-family:var(--display);font-size:22px;color:var(--cfg);margin-bottom:2px}
+.k-card-bits{font-size:11.2px;color:var(--dim);letter-spacing:.05em;margin-bottom:8px}
+.k-input{width:58px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:13px;padding:4px 5px;text-align:right;outline:none}
+.k-input:focus{border-color:var(--cfg)}
+.k-unit{font-size:10.5px;color:var(--muted);width:30px;text-align:left}
+.k-res{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:8px}
+.k-grid.k-on .k-res{color:var(--cfg)}
+/* Botón de medida automática, uno por rango */
+.k-btn{width:100%;background:var(--cfg-dim);border:1px solid var(--cfg);border-radius:6px;color:var(--cfg);font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:6px 4px;cursor:pointer;transition:all .15s}
+.k-btn:hover:not(:disabled){background:rgba(167,139,250,0.24)}
+.k-btn:disabled{opacity:.35;cursor:not-allowed}
+.k-hint{font-size:9.5px;color:var(--dim);margin-top:4px}
+.k-msg{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;min-height:12px}
+.k-msg.err{color:var(--err)}
+.k-msg.warn{color:var(--warn)}
+.k-stats{font-family:var(--mono);font-size:10px;color:var(--dim);line-height:1.6;margin-top:3px}
+.k-warn{font-size:9.5px;color:var(--warn);line-height:1.45;margin-top:6px;text-align:left}
+
+/* Config summary trama */
+.cfg-trama-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;margin-top:0}
+.cfg-trama-lbl{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap}
+.cfg-trama-val{font-size:15px;font-weight:500;color:var(--cfg)}
+
+/* Bit display */
+.bit-display{display:flex;gap:6px;margin-bottom:16px;align-items:center}
+.bit-box{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--s2);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:25px;color:var(--muted);transition:all .2s}
+.bit-box.b1{border-color:var(--cfg);color:var(--cfg);background:var(--cfg-dim)}
+.bit-box.b0{border-color:var(--border2);color:var(--text)}
+.bit-label{font-size:11.2px;color:var(--dim);margin-left:4px}
+.bit-sep{color:var(--muted);font-size:15px;margin:0 2px}
+@media (max-width:700px){
+  .params-grid,.params-grid.cols3{grid-template-columns:1fr 1fr}
+  .logo{font-size:40px}
+}
+
+/* RESULTS BLOCK */
+.res-block{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-top:14px}
+.res-block-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
+.res-block-title{font-size:28px;font-family:var(--display);letter-spacing:.03em;color:var(--text)}
+.res-block-meta{font-size:12.5px;color:var(--dim)}
+.res-legend{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px 4px;}
+.res-legend-item{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:5px;border:1px solid transparent;cursor:pointer;font-size:12.5px;transition:all .15s;user-select:none}
+.res-legend-item:hover{border-color:var(--border2)}
+.res-legend-item.active{border-color:currentColor}
+.res-legend-item.inactive{opacity:0.3}
+.res-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.res-legend-dac{display:flex;align-items:center;gap:5px;padding:4px 8px;font-size:12.5px;color:rgba(255,255,255,0.7)}
+.res-legend-dash{width:16px;height:2px;border-radius:1px;flex-shrink:0;background-image:repeating-linear-gradient(90deg,currentColor 0,currentColor 4px,transparent 4px,transparent 8px)}
+.res-chart-wrap{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--s2);margin:12px;border-radius:8px;border:1px solid var(--border)}
+.res-chart-wrap:last-child{border-bottom:1px solid var(--border)}
+.res-chart-lbl{font-size:11.2px;text-transform:uppercase;letter-spacing:.09em;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.res-chart-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+.res-empty{padding:24px;text-align:center;color:var(--dim);font-size:12.5px;line-height:2}
+canvas.res-cv{width:100%;height:200px;display:block}
+
+/* Número editable */
+.pb-num[contenteditable]{outline:none;border-bottom:1px solid var(--border2);cursor:text;min-width:20px}
+.pb-num[contenteditable]:focus{border-bottom-color:currentColor}
+
+/* CFG subtítulos */
+.cfg-subtitle{font-size:11.2px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:14px 16px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
+.toggle-label{font-size:12.5px;color:var(--text)}
+.toggle{position:relative;width:40px;height:22px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:var(--border2);border-radius:11px;cursor:pointer;transition:background .2s}
+.toggle input:checked + .toggle-track{background:#60a5fa}
+.toggle-track::after{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle input:checked + .toggle-track::after{transform:translateX(18px)}
+
+/* Modo claro */
+body.light{--bg:#f5f0e6;--s1:#fffdf8;--s2:#f3ecda;--border:#e6ddc8;--border2:#d3c7a8;--text:#2b2a22;--muted:#6b6355;--dim:#948a72}
+body.light .log-panel{box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
+body.light .log-body{background:#fffdf8}
+body.light .sig-wrap{background:#fffdf8;box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
+body.light canvas{background:#fffdf8}
+body.light .param-block{background:#fffdf8 !important;border-color:#e6ddc8 !important;box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
+body.light .trama-row{background:#fffdf8 !important;border-color:#e6ddc8 !important}
+body.light #send-row{background:var(--bg) !important;border:none !important}
+body.light .btn-send{background:#fffdf8 !important;border:1px solid #e6ddc8 !important;color:#3a3222 !important;box-shadow:0 1px 2px rgba(70,58,30,.06)}
+body.light .btn-send:hover{background:#f7f1e2 !important}
+body.light .pb-num{color:#666 !important}
+body.light #cycles-val{color:#666 !important}
+body.light #cycles-val[contenteditable]{color:#666 !important}
+body.light #points-val{color:#666 !important}
+body.light #points-val[contenteditable]{color:#666 !important}
+
+/* Textos que son blancos hardcoded en modo claro */
+body.light .logo{color:#111}
+body.light .pb-num{color:#444}
+body.light .pb-unit{color:#444}
+body.light .pb-label{color:#444}
+body.light .pb-bounds{color:#666}
+/* trama mantiene color de señal en modo claro también */
+body.light .trama-key{color:#666}
+body.light .tab-name{color:#444}
+body.light .tab-name.active{color:inherit}
+body.light .log-line{color:#222}
+body.light .cfg-big-title{color:#111}
+body.light .cfg-section-title{color:#444}
+body.light .mem-card{color:#444}
+body.light .toggle-label{color:#111}
+body.light .param-block span{color:#111}
+body.light .param-block .pb-bounds span{color:#666}
+body.light #cycles-val{color:#111 !important}
+body.light .res-block-title{color:#444}
+body.light .res-block-meta{color:#666}
+body.light .res-chart-lbl{color:#444}
+body.light .res-chart-wrap{background:#fffdf8 !important;border-color:#e6ddc8 !important;box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
+body.light .res-legend-dac{color:rgba(0,0,0,0.55)}
+/* Botones cfg modo claro */
+body.light .mem-card{background:#fffdf8 !important;border-color:#e6ddc8 !important;color:#555 !important;box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
+body.light .mem-card:hover{border-color:#c9bb95 !important}
+body.light .mem-card.active-m1{background:#eef8ec !important;border-color:var(--cfg) !important}
+body.light .mem-card.active-m2{background:#eaf6fa !important;border-color:var(--sin) !important}
+body.light .mem-card-title{color:#333 !important}
+body.light .mem-card-badge{color:#666 !important}
+body.light .mem-card-desc{color:#666 !important}
+body.light .mem-card-bit{color:#999 !important}
+body.light .mem-card.active-m1 .mem-card-badge{color:var(--cfg) !important}
+body.light .mem-card.active-m1 .mem-card-bit{color:var(--cfg) !important}
+body.light .mem-card.active-m2 .mem-card-badge{color:var(--sin) !important}
+body.light .mem-card.active-m2 .mem-card-bit{color:var(--sin) !important}
+body.light .dir-btn{background:#fffdf8 !important;border-color:#e6ddc8 !important;color:#555 !important;box-shadow:0 1px 2px rgba(70,58,30,.06)}
+body.light .dir-btn.active-dir{background:#eef8ec !important;border-color:var(--cfg) !important;color:var(--cfg) !important}
+body.light .int-card{background:#fffdf8 !important;border-color:#e6ddc8 !important;box-shadow:0 1px 2px rgba(70,58,30,.06)}
+body.light .int-card.active-int{background:#fef6dc !important;border-color:#d97706 !important}
+body.light .int-card-mult{color:#555 !important}
+
+body.light .int-card.active-int .int-card-mult{color:#d97706 !important}
+body.light .int-card.active-int .int-card-bits{color:#d97706 !important}
+body.light .int-card-bar{background:#ece4d0 !important}
+body.light .int-card.active-int .int-card-bar{background:rgba(217,119,6,0.3) !important}
+body.light .k-card{background:#fffdf8 !important;border-color:#e6ddc8 !important;box-shadow:0 1px 2px rgba(70,58,30,.06)}
+body.light .k-input{background:#fffdf8 !important;border-color:#e6ddc8 !important;color:#2b2a22 !important}
+body.light .k-switch{background:#fffdf8 !important;border-color:#e6ddc8 !important}
+body.light .k-switch-opt{color:#777}
+body.light .k-switch-opt.k-sel{color:var(--cfg) !important;background:rgba(167,139,250,0.15) !important}
+body.light .k-cal-bar{background:#fffdf8 !important;border-color:#e6ddc8 !important}
+body.light .k-btn{background:rgba(167,139,250,0.15) !important;color:#6d43e0 !important;border-color:#a78bfa !important}
+/* El ámbar de los avisos no se lee sobre el fondo claro: se oscurece */
+body.light .k-warn{color:#b45309 !important}
+body.light .k-msg.warn{color:#b45309 !important}
+
+/* Títulos grandes cfg */
+.cfg-big-title{font-family:var(--display);font-size:28px;color:#fff;padding:18px 16px 10px;border-bottom:1px solid var(--border);letter-spacing:0.03em}
+body.light .cfg-big-title{color:#111}
+
+/* Botón sol/luna */
+.theme-btn{background:none;border:1px solid var(--border2);border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:border-color .2s,color .2s;flex-shrink:0}
+.theme-btn:hover{border-color:var(--text);color:var(--text)}
+
+/* Botón animación header */
+.anim-btn{background:none;border:1px solid var(--border2);border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:border-color .2s,color .2s;flex-shrink:0}
+.anim-btn:hover{border-color:var(--text);color:var(--text)}
+.anim-btn.paused{border-color:var(--pul);color:var(--pul)}
+
+/* Tooltip de las gráficas (THD, osciloscopio y resultados) */
+#thd-canvas,#scope-canvas,canvas.res-cv{cursor:crosshair}
+.cv-tip{position:fixed;z-index:60;pointer-events:none;display:none;background:rgba(10,13,20,0.94);border:1px solid var(--border2);border-radius:6px;padding:5px 9px;font-family:var(--mono);font-size:11.5px;color:var(--text);white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.4)}
+body.light .cv-tip{background:rgba(255,253,248,0.97);border-color:#e6ddc8;color:#2b2a22}
+body.light .cv-ring{border-color:#4a3f28}
+body.light .toggle-track::after{background:#fffdf8}
+.cv-ring{position:fixed;z-index:59;pointer-events:none;display:none;width:11px;height:11px;border-radius:50%;border:2px solid #fff;transform:translate(-50%,-50%)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div class="logo">SIGNAL<span>GEN</span></div>
+        <div class="tagline">Arduino · Web Serial API · Chrome / Edge</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="anim-btn" id="anim-btn" onclick="toggleAnim()" title="Pausar/reanudar animación">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 12 Q6 4 12 12 Q18 20 22 12"/>
+          <line id="anim-x1" x1="6" y1="6" x2="18" y2="18" stroke-width="2.5" style="display:none"/>
+          <line id="anim-x2" x1="18" y1="6" x2="6" y2="18" stroke-width="2.5" style="display:none"/>
+        </svg>
+      </button>
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo claro/oscuro">
+        <svg id="theme-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </button>
+      </div>
+    </div>
+    <div class="hr"></div>
+  </div>
+
+  <!-- WARN -->
+  <div class="warn-no-serial" id="warn">
+    ⚠ Web Serial API no disponible. Usa <strong>Chrome</strong> o <strong>Edge</strong>.
+    <a href="https://caniuse.com/web-serial" target="_blank"> Ver compatibilidad →</a>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-row">
+    <div class="dot" id="dot"></div>
+    <span class="status-txt" id="stxt">Desconectado</span>
+    <button class="btn-conn" id="btn-conn" onclick="toggleConn()">Conectar</button>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar" style="grid-template-columns:repeat(5,1fr)">
+    <div class="tab sin active" onclick="setTab('sin')">
+      <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 18 C15 18 15 4 30 4 C45 4 45 32 60 32 C75 32 75 4 90 4 C105 4 105 32 120 32" stroke="#00e5b0" stroke-width="2" fill="none"/>
+      </svg>
+      <div class="tab-name">Sinusoidal</div>
+      <div class="tab-sub">Freq · Amp · Offset</div>
+      <div class="tab-indicator"></div>
+    </div>
+    <div class="tab tri" onclick="setTab('tri')">
+      <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="0,28 20,8 40,28 60,8 80,28 100,8 120,28" stroke="#f59e0b" stroke-width="2" fill="none"/>
+      </svg>
+      <div class="tab-name">Triangular</div>
+      <div class="tab-sub">Freq · Vmax · Vmin</div>
+      <div class="tab-indicator"></div>
+    </div>
+    <div class="tab pul" onclick="setTab('pul')">
+      <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="0,28 0,28 18,28 18,8 38,8 38,28 60,28 60,8 80,8 80,28 102,28 102,8 120,8 120,28" stroke="#f43f5e" stroke-width="2" fill="none"/>
+      </svg>
+      <div class="tab-name">Pulsos</div>
+      <div class="tab-sub">VHI · VLO · Dur · Per</div>
+      <div class="tab-indicator"></div>
+    </div>
+    <div class="tab old" onclick="setTab('old')">
+      <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="0,28 10,28 10,8 17,8 17,28 51,28 51,8 58,8 58,28 92,28 92,8 99,8 99,28 120,28" stroke="#e879f9" stroke-width="2" fill="none"/>
+      </svg>
+      <div class="tab-name">Pulsos EC</div>
+      <div class="tab-sub">EC · T1 · T2</div>
+      <div class="tab-indicator"></div>
+    </div>
+    <div class="tab cfg" onclick="setTab('cfg')">
+      <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="60" cy="18" r="7" stroke="#a78bfa" stroke-width="2"/>
+        <line x1="60" y1="4" x2="60" y2="11" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/>
+        <line x1="60" y1="25" x2="60" y2="32" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/>
+        <line x1="74" y1="18" x2="81" y2="18" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/>
+        <line x1="39" y1="18" x2="46" y2="18" stroke="#a78bfa" stroke-width="2" stroke-linecap="round"/>
+        <line x1="70.9" y1="7.1" x2="65.9" y2="12.1" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="54.1" y1="23.9" x2="49.1" y2="28.9" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="70.9" y1="28.9" x2="65.9" y2="23.9" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="54.1" y1="12.1" x2="49.1" y2="7.1" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <div class="tab-name">Config</div>
+      <div class="tab-sub">Memristor · Dir · Web</div>
+      <div class="tab-indicator"></div>
+    </div>
+    <div class="tab dbg" id="tab-dbg" onclick="setTab('dbg')" style="display:none">
+      <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polyline points="4,30 24,30 32,10 42,26 50,16 60,22 70,8 116,8" stroke="#38bdf8" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="70" cy="8" r="3" fill="#38bdf8"/>
+      </svg>
+      <div class="tab-name">Debug</div>
+      <div class="tab-sub">Herramientas internas</div>
+      <div class="tab-indicator"></div>
+    </div>
+  </div>
+
+  <!-- MAIN PANEL -->
+  <div class="panel">
+    <div class="chart-wrap">
+      <canvas id="sig-canvas" class="sig-canvas" height="200"></canvas>
+    </div>
+    <div class="params-area">
+
+      <!-- SIN PARAMS -->
+      <div id="params-sin">
+        <div class="params-grid cols3">
+          <div class="param-block sin-focus">
+            <div class="pb-label">Frecuencia</div>
+            <div class="pb-val-row"><span class="pb-num" id="s-freq-v">50</span><span class="pb-unit">Hz</span></div>
+            <!-- Máx. 100 Hz: por encima el THD medido se dispara (ver barrido de THD en Debug) -->
+            <input type="range" class="sin-range" id="s-freq" min="1" max="100" step="1" value="50" oninput="upd()">
+            <div class="pb-bounds"><span>1</span><span>100 Hz</span></div>
+          </div>
+          <div class="param-block sin-focus">
+            <div class="pb-label">Amp. pico</div>
+            <div class="pb-val-row"><span class="pb-num" id="s-amp-v" style="color:#fff">0.50</span><span class="pb-unit">V</span></div>
+            <input type="range" class="sin-range" id="s-amp" min="0" max="20" step="1" value="10" oninput="upd()" onchange="clampSinRanges('amp'); upd()" onblur="clampSinRanges('amp'); upd()" onmouseup="clampSinRanges('amp'); upd()" ontouchend="clampSinRanges('amp'); upd()">
+            <div class="pb-bounds"><span>0</span><span id="s-amp-max">1 V</span></div>
+          </div>
+          <div class="param-block sin-focus">
+            <div class="pb-label">Offset</div>
+            <div class="pb-val-row"><span class="pb-num" id="s-off-v">0.0</span><span class="pb-unit">V</span></div>
+            <input type="range" class="sin-range" id="s-off" min="-20" max="20" step="1" value="0" oninput="upd()" onchange="clampSinRanges('off'); upd()" onblur="clampSinRanges('off'); upd()" onmouseup="clampSinRanges('off'); upd()" ontouchend="clampSinRanges('off'); upd()">
+            <div class="pb-bounds"><span id="s-off-min">-1 V</span><span id="s-off-max">+1 V</span></div>
+          </div>
+        </div>
+        <div class="trama-row">
+          <span class="trama-lbl">Trama →</span>
+          <span class="trama-val sin" id="trama-sin">TYPE:SIN,F:50,AMP:0.50,OFF:0.00</span>
+        </div>
+      </div>
+
+      <!-- TRI PARAMS -->
+      <div id="params-tri" style="display:none">
+        <div class="params-grid cols3">
+          <div class="param-block tri-focus">
+            <div class="pb-label">Frecuencia</div>
+            <div class="pb-val-row"><span class="pb-num" id="t-freq-v">50</span><span class="pb-unit">Hz</span></div>
+            <!-- Máx. 100 Hz: por encima el THD medido se dispara (ver barrido de THD en Debug) -->
+            <input type="range" class="tri-range" id="t-freq" min="1" max="100" step="1" value="50" oninput="upd()">
+            <div class="pb-bounds"><span>1</span><span>100 Hz</span></div>
+          </div>
+          <div class="param-block tri-focus">
+            <div class="pb-label">Vmax</div>
+            <div class="pb-val-row"><span class="pb-num" id="t-vmax-v" style="color:#fff">0.50</span><span class="pb-unit">V</span></div>
+            <input type="range" class="tri-range" id="t-vmax" min="0" max="20" step="1" value="10" oninput="upd()">
+            <div class="pb-bounds"><span>0 V</span><span>+1 V</span></div>
+          </div>
+          <div class="param-block tri-focus">
+            <div class="pb-label">Vmin</div>
+            <div class="pb-val-row"><span class="pb-num" id="t-vmin-v">-0.50</span><span class="pb-unit">V</span></div>
+            <input type="range" class="tri-range" id="t-vmin" min="-20" max="0" step="1" value="-10" oninput="upd()">
+            <div class="pb-bounds"><span>-1 V</span><span>0 V</span></div>
+          </div>
+        </div>
+        <div class="trama-row">
+          <span class="trama-lbl">Trama →</span>
+          <span class="trama-val tri" id="trama-tri">TYPE:TRI,F:50,VMAX:0.50,VMIN:-0.50</span>
+        </div>
+      </div>
+
+      <!-- PUL PARAMS -->
+      <div id="params-pul" style="display:none">
+        <div class="params-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div class="param-block pul-focus">
+            <div class="pb-label">V. alto (VHI)</div>
+            <div class="pb-val-row"><span class="pb-num" id="p-vhi-v" style="color:#fff">0.50</span><span class="pb-unit">V</span></div>
+            <input type="range" class="pul-range" id="p-vhi" min="0" max="20" step="1" value="10" oninput="upd()">
+            <div class="pb-bounds"><span>0 V</span><span>+1 V</span></div>
+          </div>
+          <div class="param-block pul-focus">
+            <div class="pb-label">V. bajo (VLO)</div>
+            <div class="pb-val-row"><span class="pb-num" id="p-vlo-v">-0.50</span><span class="pb-unit">V</span></div>
+            <input type="range" class="pul-range" id="p-vlo" min="-20" max="0" step="1" value="-10" oninput="upd()">
+            <div class="pb-bounds"><span>-1 V</span><span>0 V</span></div>
+          </div>
+          <div class="param-block pul-focus">
+            <div class="pb-label">Duración pulso</div>
+            <div class="pb-val-row"><span class="pb-num" id="p-dur-v">5000</span><span class="pb-unit">µs</span></div>
+            <input type="range" class="pul-range" id="p-dur" min="1" max="10000" step="1" value="5000" oninput="upd()">
+            <div class="pb-bounds"><span>1 µs</span><span>10000 µs</span></div>
+          </div>
+          <div class="param-block pul-focus">
+            <div class="pb-label">Periodo</div>
+            <div class="pb-val-row"><span class="pb-num" id="p-gap-v">10</span><span class="pb-unit">ms</span></div>
+            <input type="range" class="pul-range" id="p-gap" min="1" max="1000" step="1" value="10" oninput="upd()">
+            <div class="pb-bounds"><span>1 ms</span><span>1000 ms</span></div>
+          </div>
+        </div>
+        <div class="trama-row">
+          <span class="trama-lbl">Trama →</span>
+          <span class="trama-val pul" id="trama-pul">TYPE:PUL,VHI:0.50,VLO:-0.50,DUR:5000,PER:10</span>
+        </div>
+      </div>
+
+      <!-- OLD PARAMS (chip antiguo: la señal la hace el pin EC, no el DAC) -->
+      <div id="params-old" style="display:none">
+        <!-- Nota del panel: oculta a propósito, esto ya lo cuenta la memoria.
+        <div class="old-note">
+          Chip antiguo del laboratorio: EC es una entrada <b>digital</b> del chip, gobernada por
+          el pin 34 del Arduino, y la señal consiste en encenderla y apagarla con la cadencia de
+          T1 y T2. <b>No hay tensión ni amplitud que ajustar</b>: el DAC no interviene y se queda
+          a cero durante toda la generación. Mientras este panel esté seleccionado, las señales
+          sinusoidal, triangular y de pulsos quedan bloqueadas: con este cableado podrían dañar
+          el integrado. Se vuelven a habilitar al salir del panel.
+          <br><br>
+          <b>Muestreo</b>: una conversión por pulso, disparada en el <b>flanco de bajada</b> de T1,
+          que es el criterio del fabricante (datasheet rev03, pág. 5). Por eso el contador de al
+          lado del botón de medida es aquí el <b>número de pulsos</b> del tren —hasta 512, uno por
+          hueco del buffer del Arduino— y no hay puntos por ciclo que elegir: se devuelve
+          exactamente una muestra por pulso.
+        </div>
+        -->
+        <div class="params-grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div class="param-block old-focus">
+            <div class="pb-label">T1 · duración pulso</div>
+            <div class="pb-val-row"><span class="pb-num" id="o-t1-v">5000</span><span class="pb-unit">µs</span></div>
+            <!-- El mínimo de 2000 µs no es arbitrario: sale de medir el valor medio de la señal
+                 en el pin 34 con voltímetro y despejar la duración real del pulso, con T2 = 10 ms.
+                 T1 pedido → T1 real (error):  5000→4921 (−1,6 %) · 2000→1822 (−8,9 %) ·
+                 1000→535 (−46,5 %) · 700→406 (−42,0 %) · 500→308 (−38,4 %).
+                 La caída es abrupta entre 2000 y 1000 µs, así que el deslizador corta en 2000.
+                 El firmware NO cambia: por consola se puede seguir mandando TYPE:OLD con
+                 cualquier T1, que es como se han tomado estas medidas. -->
+            <input type="range" class="old-range" id="o-t1" min="2000" max="10000" step="1" value="5000" oninput="upd()">
+            <div class="pb-bounds"><span>2000 µs</span><span>10000 µs</span></div>
+            <!-- Aviso del deslizador: oculto a propósito; el porqué está en el comentario de arriba.
+            <div class="pb-note" id="o-t1-warn">
+              El deslizador <b>no baja de 2 ms</b>: la duración del pulso la marca el bucle del
+              firmware, no un temporizador, y por debajo de 2 ms la duración real medida se queda
+              <b>por debajo de la mitad</b> de la solicitada.
+            </div>
+            -->
+          </div>
+          <div class="param-block old-focus">
+            <div class="pb-label">T2 · periodo</div>
+            <div class="pb-val-row"><span class="pb-num" id="o-t2-v">10</span><span class="pb-unit">ms</span></div>
+            <input type="range" class="old-range" id="o-t2" min="1" max="1000" step="1" value="10" oninput="upd()">
+            <div class="pb-bounds"><span>1 ms</span><span>1000 ms</span></div>
+          </div>
+        </div>
+        <div class="trama-row">
+          <span class="trama-lbl">Trama →</span>
+          <span class="trama-val old" id="trama-old">TYPE:OLD,T1:5000,T2:10</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONFIG PANEL -->
+  <div class="cfg-panel" id="cfg-panel">
+
+    <!-- TÍTULO TK042 -->
+    <div class="cfg-big-title">TK042</div>
+
+    <!-- MEMRISTOR -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Selector de Memristor</div>
+      <div class="mem-grid">
+        <div class="mem-card active-m1" id="mem-m1" onclick="selectMem(0)">
+          <div class="mem-card-badge">X0 · Bit = 0</div>
+          <div class="mem-card-title">Memristor 1</div>
+          <div class="mem-card-desc">El bit X0 selecciona<br>el memristor físico 1</div>
+          <div class="mem-card-bit">0</div>
+        </div>
+        <div class="mem-card" id="mem-m2" onclick="selectMem(1)">
+          <div class="mem-card-badge">X1 · Bit = 1</div>
+          <div class="mem-card-title">Memristor 2</div>
+          <div class="mem-card-desc">El bit X1 selecciona<br>el memristor físico 2</div>
+          <div class="mem-card-bit">1</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTENSIDAD -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Ganancia de Intensidad</div>
+      <div class="int-grid">
+        <div class="int-card" id="int-00" onclick="selectInt('00')">
+          <div class="int-card-mult">×⅛</div>
+          <div class="int-card-bits">00</div>
+          <div class="int-card-bar"><div class="int-card-fill" style="width:12.5%"></div></div>
+        </div>
+        <div class="int-card" id="int-01" onclick="selectInt('01')">
+          <div class="int-card-mult">×¼</div>
+          <div class="int-card-bits">01</div>
+          <div class="int-card-bar"><div class="int-card-fill" style="width:25%"></div></div>
+        </div>
+        <div class="int-card" id="int-10" onclick="selectInt('10')">
+          <div class="int-card-mult">×½</div>
+          <div class="int-card-bits">10</div>
+          <div class="int-card-bar"><div class="int-card-fill" style="width:50%"></div></div>
+        </div>
+        <div class="int-card active-int" id="int-11" onclick="selectInt('11')">
+          <div class="int-card-mult">×1</div>
+          <div class="int-card-bits">11</div>
+          <div class="int-card-bar"><div class="int-card-fill" style="width:100%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALIBRACIÓN K FUENTE DE CORRIENTE -->
+    <div class="cfg-section">
+      <div class="cfg-section-title">Calibración fuente de corriente</div>
+      <div class="k-switch">
+        <div class="k-switch-opt k-sel" id="k-opt-teo" onclick="setUseKCal(false)">K teórica</div>
+        <div class="k-switch-opt" id="k-opt-cal" onclick="setUseKCal(true)">K calculada</div>
+      </div>
+      <!-- Resistencia patrón: se conecta en lugar del dispositivo bajo medida
+           y de su caída (V01−V02) sale la corriente real, I = ΔV/R -->
+      <div class="k-cal-bar">
+        <span class="k-cal-lbl">Resistencia patrón</span>
+        <input class="k-input k-input-r" id="k-rpatron" type="number" step="any" min="0" value="1000" onchange="setKCalR()">
+        <span class="k-unit">Ω</span>
+        <span class="k-cal-note">Sustituye el dispositivo bajo medida por una resistencia conocida y pulsa «Calibrar» en el rango que quieras. Se manda una rampa 0→1 V (TRI, 5 Hz, 2 ciclos, 255 pts) con ese rango en INT, se calcula I = (V01−V02)/R en cada muestra y K sale como el cociente de las medias, K = media(I)/media(Vctrl). Cada rango necesita su propia R (ver «R sug.» de cada tarjeta): con una R demasiado pequeña la caída no llega a la resolución del ADC y la medida no significa nada.</span>
+      </div>
+      <div class="k-grid" id="k-grid">
+        <div class="k-card">
+          <div class="k-card-mult">×⅛</div>
+          <div class="k-card-bits">00</div>
+          <button class="k-btn" id="k-btn-00" onclick="startKCal('00')" disabled>Calibrar</button>
+          <div class="k-hint" id="k-hint-00">R sug. ≈ —</div>
+          <div class="k-msg" id="k-msg-00"></div>
+          <div class="k-res" id="k-res-00">K = —</div>
+          <div class="k-stats" id="k-stats-00"></div>
+          <div class="k-warn" id="k-warn-00"></div>
+        </div>
+        <div class="k-card">
+          <div class="k-card-mult">×¼</div>
+          <div class="k-card-bits">01</div>
+          <button class="k-btn" id="k-btn-01" onclick="startKCal('01')" disabled>Calibrar</button>
+          <div class="k-hint" id="k-hint-01">R sug. ≈ —</div>
+          <div class="k-msg" id="k-msg-01"></div>
+          <div class="k-res" id="k-res-01">K = —</div>
+          <div class="k-stats" id="k-stats-01"></div>
+          <div class="k-warn" id="k-warn-01"></div>
+        </div>
+        <div class="k-card">
+          <div class="k-card-mult">×½</div>
+          <div class="k-card-bits">10</div>
+          <button class="k-btn" id="k-btn-10" onclick="startKCal('10')" disabled>Calibrar</button>
+          <div class="k-hint" id="k-hint-10">R sug. ≈ —</div>
+          <div class="k-msg" id="k-msg-10"></div>
+          <div class="k-res" id="k-res-10">K = —</div>
+          <div class="k-stats" id="k-stats-10"></div>
+          <div class="k-warn" id="k-warn-10"></div>
+        </div>
+        <div class="k-card">
+          <div class="k-card-mult">×1</div>
+          <div class="k-card-bits">11</div>
+          <button class="k-btn" id="k-btn-11" onclick="startKCal('11')" disabled>Calibrar</button>
+          <div class="k-hint" id="k-hint-11">R sug. ≈ —</div>
+          <div class="k-msg" id="k-msg-11"></div>
+          <div class="k-res" id="k-res-11">K = —</div>
+          <div class="k-stats" id="k-stats-11"></div>
+          <div class="k-warn" id="k-warn-11"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SEND -->
+  <div id="send-row" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <div style="display:flex;flex-direction:column;align-items:center;background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 16px;min-width:96px">
+      <!-- En "Pulso old" este contador NO son ciclos sino PULSOS del tren (una
+           muestra por pulso): setTab() le cambia el rótulo con #cycles-label. -->
+      <span id="cycles-label" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Ciclos</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="changeCycles(-1)" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text);width:26px;height:26px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+        <span id="cycles-val" style="font-family:var(--display);font-size:36px;color:#fff;min-width:46px;text-align:center;cursor:text" contenteditable="true">1</span>
+        <button onclick="changeCycles(1)" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text);width:26px;height:26px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+    </div>
+    <!-- Puntos/ciclo: no aplica a "Pulso old" (allí hay exactamente una muestra
+         por pulso, NPTS se ignora), así que setTab() esconde este bloque. -->
+    <div id="points-box" style="display:flex;flex-direction:column;align-items:center;background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 16px;min-width:96px">
+      <span style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Puntos/ciclo</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <button onclick="changePoints(-1)" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text);width:26px;height:26px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
+        <span id="points-val" style="font-family:var(--display);font-size:36px;color:#fff;min-width:46px;text-align:center;cursor:text" contenteditable="true">512</span>
+        <button onclick="changePoints(1)" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text);width:26px;height:26px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
+      </div>
+    </div>
+    <button class="btn-send sin" id="btn-send" onclick="sendParams()" disabled style="flex:1;margin-bottom:0">
+      ↑ Empezar medida con señal sinusoidal
+    </button>
+  </div>
+
+  <!-- WEB CONFIG PANEL -->
+  <div class="cfg-panel" id="web-panel" style="display:none">
+    <div class="cfg-big-title">Web</div>
+
+    <!-- TOGGLE MODO CLARO/OSCURO -->
+    <div class="toggle-row">
+      <span class="toggle-label">Modo claro</span>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-light-cfg" onchange="setLight(this.checked)">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+
+    <!-- TOGGLE ANIMACIÓN -->
+    <div class="toggle-row">
+      <span class="toggle-label">Animación de señal</span>
+      <label class="toggle">
+        <input type="checkbox" id="toggle-anim" checked onchange="setAnim(this.checked)">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+
+  </div>
+
+  <!-- DEBUG PANEL -->
+  <div class="cfg-panel" id="debug-panel" style="display:none">
+    <div class="cfg-big-title">Debug</div>
+    <div class="dbg-desc" style="padding:14px 16px 4px;font-size:12.5px;color:var(--dim);line-height:1.7">
+      Osciloscopio de CH0 (V01, medida real vía ADC): manda capturas cortas reales en bucle (igual que "Empezar medida", pero pequeñas), así que si desconectas el DAC/AO verás la lectura real, no un valor inventado. Usa la última señal configurada en Sinusoidal / Triangular / Pulsos.
+    </div>
+    <div class="chart-wrap" style="padding:0 16px">
+      <canvas id="scope-canvas" class="sig-canvas" height="200"></canvas>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Autoescala (ajusta el rango vertical al mín/máx de cada captura)</span>
+      <label class="toggle">
+        <input type="checkbox" id="scope-autoscale" checked onchange="setScopeAutoScale(this.checked)">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <div class="params-grid cols3" style="padding:14px 16px 0">
+      <div class="param-block dbg-focus dbg-disabled" id="scope-vscale-block">
+        <div class="pb-label">Escala manual</div>
+        <div class="pb-val-row"><span class="pb-num" id="scope-vscale-v">1.00</span><span class="pb-unit">V</span></div>
+        <input type="range" class="dbg-range" id="scope-vscale" min="5" max="200" step="5" value="100" oninput="setScopeVoltScale(this.value)" disabled>
+        <div class="pb-bounds"><span>0.05 V</span><span>2.00 V</span></div>
+      </div>
+      <div class="param-block dbg-focus dbg-disabled" id="scope-voffset-block">
+        <div class="pb-label">Desplazamiento (manual)</div>
+        <div class="pb-val-row"><span class="pb-num" id="scope-voffset-v">0.00</span><span class="pb-unit">V</span></div>
+        <input type="range" class="dbg-range" id="scope-voffset" min="-200" max="200" step="5" value="0" oninput="setScopeVoltOffset(this.value)" disabled>
+        <div class="pb-bounds"><span>-2.00 V</span><span>+2.00 V</span></div>
+      </div>
+      <div class="param-block dbg-focus">
+        <div class="pb-label">Velocidad de refresco</div>
+        <div class="pb-val-row"><span class="pb-num" id="scope-refresh-v">Continuo</span></div>
+        <input type="range" class="dbg-range" id="scope-refresh" min="0" max="3" step="1" value="0" oninput="setScopeRefresh(this.value)">
+        <div class="pb-bounds"><span>Continuo</span><span>2 s</span></div>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <span class="toggle-label">Pausar (congela la última captura)</span>
+      <label class="toggle">
+        <input type="checkbox" id="scope-pause" onchange="setScopePaused(this.checked)">
+        <div class="toggle-track"></div>
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 16px">
+      <button class="btn-send" id="btn-scope" onclick="toggleScopePreview()" disabled style="flex:1;margin-bottom:0">▶ Iniciar osciloscopio</button>
+      <span id="scope-status" style="font-size:12px;color:var(--muted);min-width:70px;text-align:right">detenido</span>
+    </div>
+
+    <div style="height:1px;background:var(--border);margin:4px 16px 0"></div>
+
+    <div class="dbg-desc" style="padding:14px 16px 4px;font-size:12.5px;color:var(--dim);line-height:1.7">
+      THD (distorsión armónica total) en función de la frecuencia: barre la señal sinusoidal (con la amplitud/offset actuales de la pestaña Sinusoidal) entre 5 Hz y 5000 Hz en escala logarítmica. Para cada frecuencia captura 10 periodos reales de CH0, calcula la FFT, localiza el primer pico (fundamental, índice p) y sus armónicos (n·p), y obtiene THD = √(V₂²+V₃²+...+Vₙ²)/V₁.
+    </div>
+    <div class="chart-wrap" style="padding:0 16px">
+      <canvas id="thd-canvas" class="sig-canvas" height="200"></canvas>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 16px">
+      <button class="btn-send" id="btn-thd" onclick="toggleThdSweep()" disabled style="flex:1;margin-bottom:0">▶ Calcular THD vs frecuencia</button>
+      <span id="thd-status" style="font-size:12px;color:var(--muted);min-width:90px;text-align:right">detenido</span>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div class="log-panel">
+    <div class="log-hdr">
+      <span class="log-title">▸ log serial</span>
+      <div class="log-acts">
+        <button class="log-btn" onclick="copyLog()">copiar</button>
+        <button class="log-btn" onclick="clearLog()">limpiar</button>
+      </div>
+    </div>
+    <div class="log-body" id="log"></div>
+    <div style="display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--border)">
+      <span style="font-size:11px;color:var(--muted);align-self:center;flex-shrink:0">›</span>
+      <input id="console-input" type="text"
+        style="flex:1;background:transparent;border:none;font-family:var(--mono);font-size:11px;color:var(--text);outline:none"
+        onkeydown="if(event.key==='Enter') runConsole()">
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="res-block-wrap" style="margin-top:24px">
+  <div class="res-block">
+    <div class="res-block-hdr">
+      <span class="res-block-title">▸ Resultados de adquisición</span>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="log-btn btn-export-green" id="btn-export-xlsx" onclick="exportResultsXlsx()" disabled style="margin-right:24px">Exporta a Excel</button>
+        <span class="res-block-meta" id="res-meta">Sin datos</span>
+      </div>
+    </div>
+    <div id="res-legend" class="res-legend" style="display:none">
+      <div class="res-legend-dac">
+        <div class="res-legend-dash"></div>
+        <span>DAC (entrada)</span>
+      </div>
+    </div>
+    <div id="res-empty" class="res-empty">
+      Los resultados aparecerán aquí al finalizar la ejecución de la señal.
+    </div>
+    <div id="res-charts" style="display:none">
+      <div class="res-chart-wrap">
+        <div class="res-chart-lbl" style="color:#a78bfa">Curva I-V — Característica del memristor</div>
+        <canvas id="cv-iv" class="res-cv" height="130"></canvas>
+      </div>
+      <div class="res-chart-wrap">
+        <div class="res-chart-lbl" style="color:#60a5fa">CH0 — Tensión entrada memristor (V01)</div>
+        <canvas id="cv-ch0" class="res-cv" height="130"></canvas>
+      </div>
+      <div class="res-chart-wrap">
+        <div class="res-chart-lbl" style="color:#f59e0b">CH1 — Tensión salida memristor (V02)</div>
+        <canvas id="cv-ch1" class="res-cv" height="130"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let port = null, writer = null, reader = null, connected = false;
+let readLoopActive = false;
+let activeTab = 'sin';
+let lastSignalTab = 'sin';  // última pestaña sin/tri/pul elegida (el osciloscopio la usa desde 'dbg')
+let measureTab    = 'sin';  // tipo de señal de la última medida enviada (para reconstruir el DAC en resultados)
+let debugUnlocked = false;
+
+const SCOPE_NCYC = 3;    // ciclos por captura (fijo, pensado para previsualizar rápido)
+const SCOPE_NPTS = 170;  // puntos/ciclo por captura (máximo posible para 3 ciclos: 512/3)
+const SCOPE_REFRESH_STEPS = [0, 250, 750, 2000];  // ms de espera entre capturas
+
+let scopePreviewActive = false;  // el bucle de capturas está encendido
+let scopeCaptureTimer  = null;   // setTimeout hacia la siguiente captura
+let scopePaused        = false;
+let scopeRefreshMs     = 0;
+let scopeAutoScale     = true;   // true = el eje se ajusta al mín/máx de cada captura
+let scopeVoltScale     = 1.0;    // modo manual: semirrango (V) alrededor del centro de los datos
+let scopeVoltOffset    = 0;      // modo manual: desplazamiento (V) del centro respecto al de los datos
+let scopeLastCapture   = null;   // [{t, v}, ...] de la última captura recibida
+
+const THD_FMIN  = 5;     // Hz, extremo inferior del barrido
+const THD_FMAX  = 5000;  // Hz, extremo superior del barrido
+const THD_STEPS = 24;    // nº de frecuencias del barrido (repartidas log-uniformemente)
+const THD_NCYC  = 10;    // periodos completos capturados por frecuencia (para resolver bien la fundamental en la FFT)
+const THD_NPTS  = Math.floor(512 / THD_NCYC);  // puntos/ciclo (limitado por MAX_SAMPLES=512 del Arduino)
+
+// genera las frecuencias del barrido repartidas logaritmicamente
+function logSpace(fMin, fMax, n){
+  const lo = Math.log10(fMin), hi = Math.log10(fMax);
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(Math.pow(10, lo + (hi - lo) * i / (n - 1)));
+  return out;
+}
+const THD_FREQS = logSpace(THD_FMIN, THD_FMAX, THD_STEPS);
+
+let thdSweepActive = false;   // el barrido está en marcha
+let thdSweepIndex  = 0;       // índice de la frecuencia que se está midiendo ahora
+let thdResults     = [];      // [{freq, thd}, ...] acumulados del barrido actual
+
+let pending      = null;   // null | 'measure' | 'scope' | 'thd' | 'kcal' | 'discard'
+let pendingTimer = null;
+
+// manda una trama y espera su respuesta, con una sola captura en el aire
+async function sendCapture(frame, kind, timeoutMs){
+  if (!writer || pending){
+    addLog('Hay una captura en curso: espera a que termine', 'warn');
+    return false;
+  }
+  pending = kind;
+  pendingTimer = setTimeout(onPendingTimeout, timeoutMs || 30000);
+  updateActionButtons();
+  try {
+    await writer.write(new TextEncoder().encode(frame + '\n'));
+    return true;
+  } catch(e){
+    addLog('Error al enviar: ' + e.message, 'err');
+    clearPending();
+    return false;
+  }
+}
+
+// libera la linea y cancela el temporizador de espera
+function clearPending(){
+  pending = null;
+  if (pendingTimer){ clearTimeout(pendingTimer); pendingTimer = null; }
+  updateActionButtons();
+}
+
+// se dispara cuando el Arduino no contesta a tiempo
+function onPendingTimeout(){
+  const kind = pending;
+  pendingTimer = null;
+  clearPending();
+  addLog('El Arduino no ha respondido (' + kind + '): se libera la línea', 'warn');
+  if (kind === 'thd' && thdSweepActive){ thdSweepIndex++; requestThdCapture(); }
+  else if (kind === 'scope' && scopePreviewActive) requestScopeCapture();
+  else if (kind === 'kcal') abortKCal('sin respuesta del Arduino');
+}
+
+// cuanto hay que esperar, segun lo que dure la senal
+function captureTimeoutMs(tab, ncyc){
+  const durMs = tab === 'pul' ? ncyc * sv('p-gap')
+              : tab === 'old' ? ncyc * sv('o-t2')
+              : ncyc / sv(tab === 'tri' ? 't-freq' : 's-freq') * 1000;
+  return durMs * 2 + 5000;
+}
+
+// habilita o bloquea los botones segun el estado de la conexion
+function updateActionButtons(){
+  document.getElementById('btn-send').disabled  = !connected || !!pending;
+  document.getElementById('btn-scope').disabled = !connected || (!!pending && !scopePreviewActive);
+  document.getElementById('btn-thd').disabled   = !connected || (!!pending && !thdSweepActive);
+  ['00','01','10','11'].forEach(b => {
+    const btn = document.getElementById('k-btn-' + b);
+    if (btn) btn.disabled = !connected || !!pending || !!kCalBits;
+  });
+}
+
+// calcula la distorsion armonica de una captura por DFT
+function computeThd(samples){
+  const N = samples.length;
+  if (N < 2) return null;
+
+  let mean = 0;
+  for (const s of samples) mean += s.v;
+  mean /= N;
+
+  const half = Math.floor(N / 2);
+  const mag = new Array(half + 1);
+  for (let k = 0; k <= half; k++){
+    let re = 0, im = 0;
+    for (let n = 0; n < N; n++){
+      const angle = 2 * Math.PI * k * n / N;
+      const v = samples[n].v - mean;
+      re += v * Math.cos(angle);
+      im -= v * Math.sin(angle);
+    }
+    mag[k] = Math.sqrt(re * re + im * im);
+  }
+
+  let p = 1;
+  for (let k = 2; k <= half; k++) if (mag[k] > mag[p]) p = k;
+
+  const V1 = mag[p];
+  if (V1 === 0) return null;
+
+  let sumSq = 0;
+  for (let n = 2; p * n <= half; n++) sumSq += mag[p * n] * mag[p * n];
+
+  return Math.sqrt(sumSq) / V1 * 100;  // %
+}
+
+// arranca o para el barrido de distorsion
+function toggleThdSweep(){
+  thdSweepActive ? stopThdSweep('detenido') : startThdSweep();
+}
+
+// prepara el barrido y lanza la primera frecuencia
+function startThdSweep(){
+  if (!connected || thdSweepActive) return;
+  stopScopePreview();  // no mezclar con el bucle del osciloscopio
+  thdSweepActive = true;
+  thdResults = [];
+  thdSweepIndex = 0;
+  document.getElementById('btn-thd').textContent = '■ Detener barrido';
+  drawThdChart();
+  addLog('Barrido de THD iniciado (' + THD_STEPS + ' frecuencias, ' + THD_NCYC + ' periodos c/u)', 'ok');
+  requestThdCapture();
+}
+
+// detiene el barrido y deja la linea libre
+function stopThdSweep(statusText){
+  if (pending === 'thd') pending = 'discard';
+  thdSweepActive = false;
+  document.getElementById('btn-thd').textContent = '▶ Calcular THD vs frecuencia';
+  document.getElementById('thd-status').textContent = statusText;
+  updateActionButtons();
+}
+
+// pide al Arduino la captura de la frecuencia actual
+async function requestThdCapture(){
+  if (!thdSweepActive || !connected) return;
+  if (thdSweepIndex >= THD_FREQS.length) {
+    stopThdSweep('completo');
+    addLog('Barrido de THD completado (' + thdResults.length + '/' + THD_STEPS + ' puntos)', 'ok');
+    return;
+  }
+  if (pending) { setTimeout(requestThdCapture, 250); return; }  // línea ocupada: reintenta enseguida
+  document.getElementById('thd-status').textContent = 'midiendo ' + (thdSweepIndex + 1) + '/' + THD_STEPS;
+  const f   = THD_FREQS[thdSweepIndex];
+  const amp = (sv('s-amp') / 20).toFixed(2);
+  const off = (sv('s-off') / 20).toFixed(2);
+  const frame = `TYPE:SIN,F:${f.toFixed(2)},AMP:${amp},OFF:${off},${buildCfgFrame()},NCYC:${THD_NCYC},NPTS:${THD_NPTS}`;
+  const ok = await sendCapture(frame, 'thd', THD_NCYC / f * 1000 * 2 + 5000);
+  if (!ok) stopThdSweep('error');
+}
+
+// procesa la respuesta y guarda el punto de distorsion
+function onThdCapture(line){
+  const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
+  const samples = parts.map(p => {
+    const [t, ch0] = p.split(',').map(Number);
+    return { t, v: ch0 };
+  });
+  const thd = computeThd(samples);
+  const f = THD_FREQS[thdSweepIndex];
+  if (thd != null) {
+    thdResults.push({ freq: f, thd });
+    addLog('THD @ ' + f.toFixed(1) + ' Hz: ' + thd.toFixed(2) + '% (' + samples.length + ' muestras)', 'info');
+  } else {
+    addLog('THD @ ' + f.toFixed(1) + ' Hz: no se pudo calcular (señal plana o insuficiente)', 'warn');
+  }
+  thdSweepIndex++;
+  drawThdChart();
+  requestThdCapture();
+}
+
+// dibuja la curva de distorsion frente a frecuencia
+function drawThdChart(){
+  const canvas = document.getElementById('thd-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth  || 660;
+  const H = canvas.offsetHeight || 200;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,W,H);
+
+  hoverPts['thd-canvas'] = [];
+
+  const isLight = document.body.classList.contains('light');
+  const pad = {l:40, r:10, t:12, b:20};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+  const cx = pad.l, cy = pad.t;
+
+  const logMin = Math.log10(THD_FMIN), logMax = Math.log10(THD_FMAX);
+  const xFromF = f => cx + (Math.log10(f) - logMin) / (logMax - logMin) * cw;
+
+  let yMax = 5;  // % mínimo del eje Y, para que un THD ~0 no se vea todo pegado arriba
+  thdResults.forEach(r => { if (r.thd > yMax) yMax = r.thd; });
+  yMax *= 1.2;
+  const yFromThd = v => cy + ch - (v / yMax) * ch;
+
+  ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.08)';
+  ctx.fillStyle = isLight ? '#555' : '#8a93a3';
+  ctx.font = '10px "IBM Plex Mono", monospace';
+  ctx.lineWidth = 1;
+  const decStart = Math.ceil(logMin), decEnd = Math.floor(logMax);
+  for (let d = decStart; d <= decEnd; d++){
+    const f = Math.pow(10, d);
+    const x = xFromF(f);
+    ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x, cy + ch); ctx.stroke();
+    const label = f >= 1000 ? (f/1000) + 'k' : f;
+    ctx.fillText(label + 'Hz', x - 12, cy + ch + 14);
+  }
+  for (let i = 0; i <= 4; i++){
+    const y = cy + (ch/4) * i;
+    ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + cw, y); ctx.stroke();
+    ctx.fillText((yMax * (1 - i/4)).toFixed(1) + '%', 2, y + 3);
+  }
+
+  if (thdResults.length < 1) return;
+
+  ctx.strokeStyle = '#a78bfa';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#a78bfa';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  thdResults.forEach((r, i) => {
+    const px = xFromF(r.freq);
+    const py = yFromThd(r.thd);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = '#a78bfa';
+  thdResults.forEach(r => {
+    ctx.beginPath();
+    ctx.arc(xFromF(r.freq), yFromThd(r.thd), 2.5, 0, 2*Math.PI);
+    ctx.fill();
+  });
+
+  hoverPts['thd-canvas'] = thdResults.map(r => ({
+    x: xFromF(r.freq), y: yFromThd(r.thd), color: '#a78bfa',
+    label: r.freq.toFixed(1) + ' Hz · THD ' + r.thd.toFixed(2) + ' %'
+  }));
+
+  const last = thdResults[thdResults.length - 1];
+  ctx.fillStyle = isLight ? '#000' : '#fff';
+  ctx.font = '11px "IBM Plex Mono", monospace';
+  ctx.fillText('THD: ' + last.thd.toFixed(2) + '% @ ' + last.freq.toFixed(1) + ' Hz', cx + cw - 170, cy + 12);
+}
+
+// fija la escala vertical del osciloscopio
+function setScopeVoltScale(raw){
+  scopeVoltScale = raw / 100;
+  document.getElementById('scope-vscale-v').textContent = scopeVoltScale.toFixed(2);
+  drawScope();
+}
+
+// desplaza verticalmente la traza del osciloscopio
+function setScopeVoltOffset(raw){
+  scopeVoltOffset = raw / 100;
+  document.getElementById('scope-voffset-v').textContent =
+    (scopeVoltOffset >= 0 ? '+' : '') + scopeVoltOffset.toFixed(2);
+  drawScope();
+}
+
+// activa o desactiva el ajuste automatico de escala
+function setScopeAutoScale(auto){
+  scopeAutoScale = auto;
+  document.getElementById('scope-vscale').disabled = auto;
+  document.getElementById('scope-voffset').disabled = auto;
+  document.getElementById('scope-vscale-block').classList.toggle('dbg-disabled', auto);
+  document.getElementById('scope-voffset-block').classList.toggle('dbg-disabled', auto);
+  drawScope();
+}
+
+// elige cada cuanto se repite la captura
+function setScopeRefresh(idx){
+  scopeRefreshMs = SCOPE_REFRESH_STEPS[idx];
+  document.getElementById('scope-refresh-v').textContent =
+    scopeRefreshMs === 0 ? 'Continuo' : (scopeRefreshMs / 1000) + ' s';
+}
+
+// congela la ultima captura
+function setScopePaused(paused){
+  scopePaused = paused;
+  document.getElementById('scope-status').textContent =
+    !scopePreviewActive ? 'detenido' : (paused ? 'en pausa' : 'en directo');
+  if (!paused && scopePreviewActive) requestScopeCapture();
+}
+
+// arma la trama corta que usa el osciloscopio
+function buildScopeSignalFrame(){
+  const t = lastSignalTab;
+  const cfg = `,${buildCfgFrame()},NCYC:${SCOPE_NCYC},NPTS:${SCOPE_NPTS}`;
+  if (t === 'tri') {
+    const f    = sv('t-freq');
+    const vmax = (sv('t-vmax') / 20).toFixed(2);
+    const vmin = (sv('t-vmin') / 20).toFixed(2);
+    return `TYPE:TRI,F:${f},VMAX:${vmax},VMIN:${vmin}${cfg}`;
+  } else if (t === 'pul') {
+    const vhi = (sv('p-vhi') / 20).toFixed(2);
+    const vlo = (sv('p-vlo') / 20).toFixed(2);
+    const dur = sv('p-dur');
+    const gap = sv('p-gap');
+    return `TYPE:PUL,VHI:${vhi},VLO:${vlo},DUR:${dur},PER:${gap}${cfg}`;
+  } else if (t === 'old') {
+    return `TYPE:OLD,T1:${sv('o-t1')},T2:${sv('o-t2')}${cfg}`;
+  } else {
+    const f   = sv('s-freq');
+    const amp = (sv('s-amp') / 20).toFixed(2);
+    const off = (sv('s-off') / 20).toFixed(2);
+    return `TYPE:SIN,F:${f},AMP:${amp},OFF:${off}${cfg}`;
+  }
+}
+
+// hace visible la pestana de depuracion
+function unlockDebugTab(){
+  if (debugUnlocked) { addLog('Modo debug ya estaba activado', 'info'); return; }
+  debugUnlocked = true;
+  document.getElementById('tab-dbg').style.display = '';
+  document.querySelector('.toolbar').style.gridTemplateColumns = 'repeat(6,1fr)';
+  addLog('Modo debug activado', 'ok');
+}
+let numCycles = 1;
+let numPoints = 512;   // Puntos por ciclo (máximo dinámico = 512 / numCycles)
+
+let animPhase  = 0;       // fase que avanza con el tiempo (0-1)
+let animFrame  = null;    // id del requestAnimationFrame activo
+let animLast   = null;    // timestamp del último frame
+
+const MAX_SAMPLES = 512;
+
+// dice si la pestana activa es la de pulsos por EC
+function oldCounters(){
+  const t = (activeTab === 'sin' || activeTab === 'tri' || activeTab === 'pul' || activeTab === 'old')
+            ? activeTab : lastSignalTab;
+  return t === 'old';
+}
+
+// puntos por ciclo que caben en el buffer
+function maxPointsForCycles(){
+  return Math.max(1, Math.floor(MAX_SAMPLES / numCycles));
+}
+
+// ciclos maximos segun la senal activa
+function maxCyclesNow(){
+  return oldCounters() ? MAX_SAMPLES : Infinity;
+}
+
+// sube o baja el contador de ciclos
+function changeCycles(delta){
+  numCycles = Math.min(maxCyclesNow(), Math.max(1, numCycles + delta));
+  document.getElementById('cycles-val').textContent = numCycles;
+  if (!oldCounters()) {
+    const maxP = maxPointsForCycles();
+    if (numPoints > maxP) {
+      numPoints = maxP;
+      document.getElementById('points-val').textContent = numPoints;
+    }
+  }
+  upd();
+}
+
+// ajusta los contadores al cambiar de pestana
+function syncCountersForTab(){
+  const isOld = oldCounters();
+  document.getElementById('cycles-label').textContent = isOld ? 'Nº de pulsos' : 'Ciclos';
+  document.getElementById('points-box').style.display = isOld ? 'none' : 'flex';
+  if (isOld) {
+    if (numCycles > MAX_SAMPLES) numCycles = MAX_SAMPLES;
+  } else {
+    const maxP = maxPointsForCycles();
+    if (numPoints > maxP) numPoints = maxP;
+    document.getElementById('points-val').textContent = numPoints;
+  }
+  document.getElementById('cycles-val').textContent = numCycles;
+}
+
+// sube o baja el contador de puntos por ciclo
+function changePoints(delta){
+  const maxP = maxPointsForCycles();
+  numPoints = Math.min(maxP, Math.max(1, numPoints + delta));
+  document.getElementById('points-val').textContent = numPoints;
+  upd();
+}
+
+let cfgMem = 0;   // 0 = M1, 1 = M2
+let cfgDir = 0;   // 0 = positiva, 1 = negativa
+let cfgInt = '11'; // '00','01','10','11'
+
+// cambia de pestana y actualiza la interfaz
+function setTab(t) {
+  activeTab = t;
+  if (t === 'sin' || t === 'tri' || t === 'pul' || t === 'old') lastSignalTab = t;
+  if (t !== 'dbg' && scopePreviewActive) stopScopePreview();  // salir de Debug para el osciloscopio
+  if (t !== 'dbg' && thdSweepActive) stopThdSweep('detenido');  // salir de Debug para el barrido de THD
+  ['sin','tri','pul','old','cfg','dbg'].forEach(k => {
+    document.querySelector('.tab.'+k).classList.toggle('active', k===t);
+    const p = document.getElementById('params-'+k);
+    if(p) p.style.display = k===t ? '' : 'none';
+  });
+
+  const isCfg = t === 'cfg';
+  const isDbg = t === 'dbg';
+  document.getElementById('cfg-panel').style.display = isCfg ? 'block' : 'none';
+  document.getElementById('web-panel').style.display  = isCfg ? 'block' : 'none';
+  document.getElementById('debug-panel').style.display = isDbg ? 'block' : 'none';
+  document.getElementById('res-block-wrap').style.display = (isCfg || isDbg) ? 'none' : 'block';
+  document.querySelector('.panel').style.display      = (isCfg || isDbg) ? 'none'  : 'block';
+
+  updateOldLock();
+  syncCountersForTab();   // "Ciclos" pasa a ser "Nº de pulsos" en el panel OLD
+
+  const names = {sin:'sinusoidal',tri:'triangular',pul:'de pulsos',old:'de pulso old (EC)'};
+  const btn     = document.getElementById('btn-send');
+  const sendRow = document.getElementById('send-row');
+  sendRow.style.display = (isCfg || isDbg) ? 'none' : 'flex';
+  if(!isCfg && !isDbg){
+    btn.className = 'btn-send ' + t;
+    btn.textContent = '↑ Empezar medida con señal ' + (names[t] || '');
+    btn.disabled = !connected;
+    drawChart(); upd();
+  }
+}
+
+// dice si el bloqueo del modo EC esta activo
+function oldLockActive(){ return activeTab === 'old'; }
+
+// bloquea o desbloquea las demas senales
+function updateOldLock(){
+  const locked = oldLockActive();
+  ['sin','tri','pul'].forEach(k => {
+    const tab = document.querySelector('.tab.' + k);
+    if (tab) tab.classList.toggle('locked', locked);
+  });
+}
+
+// lee el valor de un deslizador
+function sv(id){ return parseFloat(document.getElementById(id).value); }
+// pasa el valor del deslizador a voltios
+function toV(raw){ return (raw/12).toFixed(2); }
+// pasa cuentas del ADC a voltios
+function rawToV(r){ return (r*10/120).toFixed(2); }
+
+// selecciona el memristor activo
+function selectMem(v){
+  cfgMem = v;
+  document.getElementById('mem-m1').className = 'mem-card' + (v===0?' active-m1':'');
+  document.getElementById('mem-m2').className = 'mem-card' + (v===1?' active-m2':'');
+  updateCfgUI();
+}
+// selecciona el sentido de la corriente
+function selectDir(v){
+  cfgDir = v;
+  document.getElementById('dir-pos').className = 'dir-card' + (v===0?' active-pos':'');
+  document.getElementById('dir-neg').className = 'dir-card' + (v===1?' active-neg':'');
+  updateCfgUI();
+}
+// selecciona el espejo de corriente
+function selectInt(v){
+  cfgInt = v;
+  if (resCycles.length > 0) redrawAll();
+  ['00','01','10','11'].forEach(k => {
+    document.getElementById('int-'+k).className = 'int-card' + (k===v?' active-int':'');
+  });
+  updateCfgUI();
+}
+// refresca las tarjetas del panel de configuracion
+function updateCfgUI(){
+  const setBit = (id, val) => {
+    const el = document.getElementById(id);
+    if (!el) return;  // el display de bits ya no está en el HTML
+    el.textContent = val;
+    el.className = 'bit-box ' + (val==='1' ? 'b1' : 'b0');
+  };
+  setBit('bit-mem',  String(cfgMem));
+  setBit('bit-int0', cfgInt[0]);
+  setBit('bit-int1', cfgInt[1]);
+}
+// arma la parte comun de la trama, MEM e INT
+function buildCfgFrame(){
+  return `MEM:${cfgMem},INT:${cfgInt}`;
+}
+
+// recalcula la trama y redibuja la previsualizacion
+function upd(){
+  if(activeTab==='sin'){
+    const freq = sv('s-freq');
+    const amp  = (sv('s-amp') / 20);
+    const off  = (sv('s-off') / 20);
+    document.getElementById('s-freq-v').textContent = freq;
+    document.getElementById('s-amp-v').textContent  = amp.toFixed(2);
+    document.getElementById('s-off-v').textContent  = off.toFixed(2);
+    document.getElementById('trama-sin').textContent = buildFrame();
+  } else if(activeTab==='tri'){
+    const freq = sv('t-freq');
+    const vmax = sv('t-vmax') / 20;
+    const vmin = sv('t-vmin') / 20;
+    document.getElementById('t-freq-v').textContent = freq;
+    document.getElementById('t-vmax-v').textContent = vmax.toFixed(2);
+    document.getElementById('t-vmin-v').textContent = vmin.toFixed(2);
+    document.getElementById('trama-tri').textContent = buildFrame();
+  } else if(activeTab==='old'){
+    const t1 = sv('o-t1');
+    const t2 = sv('o-t2');
+    document.getElementById('o-t1-v').textContent = t1;
+    document.getElementById('o-t2-v').textContent = t2;
+    document.getElementById('trama-old').textContent = buildFrame();
+  } else {
+    const vhi  = sv('p-vhi') / 20;
+    const vlo  = sv('p-vlo') / 20;
+    const dur  = sv('p-dur');
+    const gap  = sv('p-gap');
+    document.getElementById('p-vhi-v').textContent = vhi.toFixed(2);
+    document.getElementById('p-vlo-v').textContent = vlo.toFixed(2);
+    document.getElementById('p-dur-v').textContent = dur;
+    document.getElementById('p-gap-v').textContent = gap;
+    document.getElementById('trama-pul').textContent = buildFrame();
+  }
+  drawChart();
+}
+
+// arma la trama completa de la senal activa
+function buildFrame(tabOverride){
+  const t = tabOverride || activeTab;
+  const cfg = `,${buildCfgFrame()},NCYC:${numCycles},NPTS:${numPoints}`;
+  if(t==='sin'){
+    const f   = sv('s-freq');
+    const amp = (sv('s-amp') / 20).toFixed(2);
+    const off = (sv('s-off') / 20).toFixed(2);
+    return `TYPE:SIN,F:${f},AMP:${amp},OFF:${off}${cfg}`;
+  } else if(t==='tri'){
+    const f    = sv('t-freq');
+    const vmax = (sv('t-vmax') / 20).toFixed(2);
+    const vmin = (sv('t-vmin') / 20).toFixed(2);
+    return `TYPE:TRI,F:${f},VMAX:${vmax},VMIN:${vmin}${cfg}`;
+  } else if(t==='old'){
+    const t1 = sv('o-t1');
+    const t2 = sv('o-t2');
+    return `TYPE:OLD,T1:${t1},T2:${t2}${cfg}`;
+  } else if(t==='cfg'){
+    return buildCfgFrame();
+  } else {
+    const vhi = (sv('p-vhi') / 20).toFixed(2);
+    const vlo = (sv('p-vlo') / 20).toFixed(2);
+    const dur = sv('p-dur');
+    const gap = sv('p-gap');
+    return `TYPE:PUL,VHI:${vhi},VLO:${vlo},DUR:${dur},PER:${gap}${cfg}`;
+  }
+}
+
+// decide cuantos ciclos mostrar en la previsualizacion
+function previewCycles(freq){
+  return Math.max(1.5, Math.min(40, 1.5 + (freq - 1) * 0.39));
+}
+
+// dibuja la previsualizacion de la senal configurada
+function drawChart(phaseOffset = 0){
+  const canvas = document.getElementById('sig-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth  || 660;
+  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.clearRect(0,0,W,H);
+
+  const colors = {sin:'#00e5b0', tri:'#f59e0b', pul:'#f43f5e', old:'#e879f9'};
+  const color  = colors[activeTab];
+  const pad    = {l:38, r:8, t:12, b:12};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+  const cx = pad.l, cy = pad.t;
+
+  const isLight = document.body.classList.contains('light');
+  const yFromV = v => cy + ch/2 - v * ch * 0.41;
+  ctx.lineWidth = 1;
+  ctx.font = '10px "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? '#555' : '#8a93a3';
+  ctx.textAlign = 'right';
+  [[1, '+1V'], [0.5, null], [-0.5, null], [-1, '-1V']].forEach(([v, lbl]) => {
+    const y = yFromV(v);
+    ctx.strokeStyle = Math.abs(v) === 1
+      ? (isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.14)')
+      : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.06)');
+    ctx.beginPath(); ctx.moveTo(cx, y); ctx.lineTo(cx + cw, y); ctx.stroke();
+    if (lbl) ctx.fillText(lbl, cx - 6, y + 3);
+  });
+  ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(cx, yFromV(0)); ctx.lineTo(cx + cw, yFromV(0)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillText('0V', cx - 6, yFromV(0) + 3);
+  ctx.textAlign = 'left';
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+
+  const N = cw;
+  let winMs = 0;
+
+  if(activeTab==='sin'){
+    const freq  = sv('s-freq');
+    let   amp_V = sv('s-amp') / 20;   // V reales (0 a 1V)
+    let   off_V = sv('s-off') / 20;   // V reales (-1 a +1V)
+    if (Math.abs(off_V) + amp_V > 1) amp_V = Math.max(0, 1 - Math.abs(off_V));
+    const T_WIN = previewCycles(freq) / freq;   // s
+    winMs = T_WIN * 1000;
+    for(let i=0;i<=N;i++){
+      const t = (i/N) * T_WIN;
+      const v_V = off_V + amp_V * Math.sin(t * freq * 2 * Math.PI - phaseOffset * 2 * Math.PI);
+      const norm = v_V / 1.0;          // normalizado a ±1 dentro del rango físico ±1V
+      const px = cx + i;
+      const py = cy + ch/2 - norm * ch * 0.41;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+  } else if(activeTab==='tri'){
+    const freq  = sv('t-freq');
+    const vmax  = sv('t-vmax') / 20;
+    const vmin  = sv('t-vmin') / 20;
+    const range = vmax - vmin || 0.001;
+    const T_WIN = previewCycles(freq) / freq;   // s
+    winMs = T_WIN * 1000;
+    for(let i=0;i<=N;i++){
+      const t   = (i/N) * T_WIN;
+      const ph  = ((t * freq - phaseOffset) % 1 + 1) % 1;
+      const vV  = ph < 0.5
+        ? vmin + (ph / 0.5) * range
+        : vmax - ((ph - 0.5) / 0.5) * range;
+      const norm = vV / 1.0;
+      const px   = cx + i;
+      const py   = cy + ch/2 - norm * ch * 0.41;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+  } else if(activeTab==='old'){
+    const t1_us  = sv('o-t1');          // µs
+    const per_us = sv('o-t2') * 1000;   // ms → µs
+    const T_WIN  = previewCycles(1e6 / per_us) * per_us;   // µs
+    winMs = T_WIN / 1000;
+
+    const hi_y = yFromV(1);
+    const lo_y = yFromV(0);
+
+    for(let i = 0; i <= N; i++){
+      const t_us  = (i / N) * T_WIN;
+      const inPer = ((t_us - phaseOffset * per_us) % per_us + per_us) % per_us;
+      const px    = cx + i;
+      const py    = inPer < t1_us ? hi_y : lo_y;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+  } else {
+    const dur_us  = sv('p-dur');           // µs
+    const per_us  = sv('p-gap') * 1000;   // ms → µs
+    const vhi_V   = sv('p-vhi') / 20;
+    const vlo_V   = sv('p-vlo') / 20;
+    const T_WIN   = previewCycles(1e6 / per_us) * per_us;   // µs
+    winMs = T_WIN / 1000;
+
+    const yFromV  = v => cy + ch/2 - (v / 1.0) * ch * 0.41;
+    const hi_y    = yFromV(vhi_V);
+    const lo_y    = yFromV(vlo_V);
+
+    for(let i = 0; i <= N; i++){
+      const t_us  = (i / N) * T_WIN;
+      const inPer = ((t_us - phaseOffset * per_us) % per_us + per_us) % per_us;
+      const isHi  = inPer < dur_us;
+      const px    = cx + i;
+      const py    = isHi ? hi_y : lo_y;
+      i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+  }
+
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = isLight ? '#888' : '#566175';
+  ctx.font = '10px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'right';
+  const winLbl = winMs >= 1000 ? (winMs / 1000).toFixed(1) + ' s' : Math.round(winMs) + ' ms';
+  ctx.fillText('ventana: ' + winLbl, W - pad.r - 2, H - 3);
+  ctx.textAlign = 'left';
+}
+
+// arranca o para el osciloscopio
+function toggleScopePreview(){
+  if (scopePreviewActive) { stopScopePreview(); return; }
+  if (!connected) return;
+  if (thdSweepActive) stopThdSweep('detenido');  // no mezclar con el barrido de THD
+  scopePreviewActive = true;
+  scopePaused = false;
+  document.getElementById('scope-pause').checked = false;
+  document.getElementById('btn-scope').textContent = '■ Detener osciloscopio';
+  document.getElementById('scope-status').textContent = 'en directo';
+  addLog('Osciloscopio: iniciado (refresco=' + (scopeRefreshMs || 'continuo') + ')', 'info');
+  requestScopeCapture();
+}
+
+// detiene el osciloscopio
+function stopScopePreview(){
+  const habiaEnVuelo = pending === 'scope';
+  if (habiaEnVuelo) pending = 'discard';
+  scopePreviewActive = false;
+  if (scopeCaptureTimer) { clearTimeout(scopeCaptureTimer); scopeCaptureTimer = null; }
+  document.getElementById('btn-scope').textContent = '▶ Iniciar osciloscopio';
+  document.getElementById('scope-status').textContent = 'detenido';
+  updateActionButtons();
+  addLog('Osciloscopio: detenido' + (habiaEnVuelo ? ' (quedaba una captura en vuelo, se descarta al llegar)' : ''), 'info');
+}
+
+// pide una captura corta al Arduino
+async function requestScopeCapture(){
+  if (!scopePreviewActive || scopePaused || !connected) return;
+  if (pending) {  // línea ocupada: reintenta enseguida
+    addLog('Osciloscopio: línea ocupada (' + pending + '), reintento en 250 ms', 'info');
+    clearTimeout(scopeCaptureTimer);
+    scopeCaptureTimer = setTimeout(requestScopeCapture, 250);
+    return;
+  }
+  const frame = buildScopeSignalFrame();
+  addLog('Osciloscopio: pidiendo captura → ' + frame, 'info');
+  const ok = await sendCapture(frame, 'scope', captureTimeoutMs(lastSignalTab, SCOPE_NCYC));
+  if (!ok) stopScopePreview();
+}
+
+// recibe la captura y la manda a dibujar
+function onScopeCapture(line){
+  const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
+  scopeLastCapture = parts.map(p => {
+    const [t, ch0] = p.split(',').map(Number);
+    return { t, v: ch0 };
+  });
+  addLog('Osciloscopio: captura recibida (' + scopeLastCapture.length + ' muestras)', 'info');
+  drawScope();
+  if (scopePreviewActive && !scopePaused) {
+    clearTimeout(scopeCaptureTimer);
+    scopeCaptureTimer = setTimeout(requestScopeCapture, scopeRefreshMs);
+  }
+}
+
+// dibuja la traza del osciloscopio con sus ejes y sus valores
+function drawScope(){
+  const canvas = document.getElementById('scope-canvas');
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth  || 660;
+  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0,0,W,H);
+
+  const isLight = document.body.classList.contains('light');
+  const pad = {l:50, r:8, t:12, b:12};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+  const cx = pad.l, cy = pad.t;
+
+  const hasData = scopeLastCapture && scopeLastCapture.length >= 2;
+
+  let vMin = 0, vMax = 0, vMean = 0, vPP = 0, dataCenter = 0;
+  if (hasData) {
+    vMin = Infinity; vMax = -Infinity;
+    let sum = 0;
+    for (const s of scopeLastCapture) {
+      if (s.v < vMin) vMin = s.v;
+      if (s.v > vMax) vMax = s.v;
+      sum += s.v;
+    }
+    vMean = sum / scopeLastCapture.length;
+    vPP = vMax - vMin;
+    dataCenter = (vMin + vMax) / 2;
+  }
+
+  let axisMin, axisMax;
+  if (scopeAutoScale && hasData) {
+    const span = Math.max(vPP, 0.02);        // evita un rango nulo con señal plana
+    const margin = Math.max(span * 0.1, 0.01);
+    axisMin = vMin - margin;
+    axisMax = vMax + margin;
+  } else {
+    const center = (hasData ? dataCenter : 0) + scopeVoltOffset;
+    axisMin = center - scopeVoltScale;
+    axisMax = center + scopeVoltScale;
+  }
+  const axisSpan = (axisMax - axisMin) || 1;
+
+  ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.08)';
+  ctx.fillStyle = isLight ? '#555' : '#8a93a3';
+  ctx.font = '10px "IBM Plex Mono", monospace';
+  ctx.lineWidth = 1;
+  for(let i=0;i<=4;i++){
+    const y = cy + (ch/4)*i;
+    ctx.beginPath(); ctx.moveTo(cx,y); ctx.lineTo(cx+cw,y); ctx.stroke();
+    const vLabel = axisMax - axisSpan * (i/4);
+    ctx.fillText((vLabel>=0?'+':'') + vLabel.toFixed(3), 2, y + 3);
+  }
+  if (axisMin <= 0 && axisMax >= 0) {
+    const yZero = cy + ch * (axisMax - 0) / axisSpan;
+    ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.2)';
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(cx, yZero); ctx.lineTo(cx+cw, yZero); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  hoverPts['scope-canvas'] = [];
+  if (!hasData) return;
+
+  const tMax = scopeLastCapture[scopeLastCapture.length - 1].t || 1;
+  const yFromV = v => cy + ch * (axisMax - v) / axisSpan;
+  const xFromT = t => cx + (t / tMax) * cw;
+
+  ctx.strokeStyle = '#38bdf8';
+  ctx.lineWidth = 2;
+  ctx.shadowColor = '#38bdf8';
+  ctx.shadowBlur = 6;
+  ctx.beginPath();
+  scopeLastCapture.forEach((s, i) => {
+    const px = xFromT(s.t);
+    const py = yFromV(s.v);
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  });
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  hoverPts['scope-canvas'] = scopeLastCapture.map(s => ({
+    x: xFromT(s.t), y: yFromV(s.v), color: '#38bdf8',
+    label: 't = ' + (s.t / 1000).toFixed(2) + ' ms · ' + s.v.toFixed(3) + ' V'
+  }));
+
+  const stats = [
+    'max  ' + (vMax>=0?'+':'') + vMax.toFixed(3) + ' V',
+    'min  ' + (vMin>=0?'+':'') + vMin.toFixed(3) + ' V',
+    'med  ' + (vMean>=0?'+':'') + vMean.toFixed(3) + ' V',
+    'pp    ' + vPP.toFixed(3) + ' V'
+  ];
+  ctx.font = '10px "IBM Plex Mono", monospace';
+  const boxW = 108, lineH = 13, boxH = stats.length * lineH + 8;
+  const boxX = cx + cw - boxW - 4, boxY = cy + 4;
+  ctx.fillStyle = isLight ? 'rgba(255,255,255,0.85)' : 'rgba(10,13,20,0.7)';
+  ctx.fillRect(boxX, boxY, boxW, boxH);
+  ctx.fillStyle = isLight ? '#000' : '#fff';
+  stats.forEach((line, i) => ctx.fillText(line, boxX + 6, boxY + 12 + i*lineH));
+}
+
+// conecta o desconecta segun el estado
+async function toggleConn(){
+  connected ? await disconnect() : await connect();
+}
+
+// abre el puerto serie y arranca el bucle de lectura
+async function connect(){
+  if(!('serial' in navigator)){
+    document.getElementById('warn').style.display='block';
+    addLog('Web Serial API no disponible', 'err'); return;
+  }
+  try {
+    setStatus('connecting','Abriendo selector de puerto...');
+    document.getElementById('btn-conn').textContent='...';
+
+    port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 2000000 });
+
+    writer = port.writable.getWriter();
+
+    startReadLoop();
+
+    connected = true;
+    updateActionButtons();
+    document.getElementById('btn-conn').textContent = 'Desconectar';
+    document.getElementById('btn-conn').classList.add('disc');
+    setStatus('connected','<b>Conectado</b> · 2M baud');
+    addLog('Puerto serie abierto a 2.000.000 baud','ok');
+
+  } catch(e) {
+    connected = false;
+    document.getElementById('btn-conn').textContent = 'Conectar';
+    document.getElementById('btn-conn').classList.remove('disc');
+    setStatus('error','Error: '+e.message);
+    addLog('Error: '+e.message,'err');
+    port = null;
+  }
+}
+
+// lee del puerto y trocea por saltos de linea
+async function startReadLoop(){
+  const decoder = new TextDecoder();
+  let buffer = '';
+  readLoopActive = true;
+
+  try {
+    reader = port.readable.getReader();
+    while (readLoopActive) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // lo que queda sin \n
+      if (buffer.length > 20000) {
+        addLog('Buffer de lectura serie desbordado (línea corrupta): se resincroniza', 'warn');
+        buffer = '';
+      }
+      for (const line of lines) {
+        const l = line.trim();
+        if (!l) continue;
+        try { handleSerialLine(l); }
+        catch(e) { addLog('Error procesando línea recibida: ' + e.message, 'err'); }
+      }
+    }
+  } catch(e) {
+    if (connected) addLog('Read error: '+e.message,'warn');
+  } finally {
+    try { reader.releaseLock(); } catch(_){}
+    reader = null;
+  }
+}
+
+// reparte cada linea recibida segun su prefijo
+function handleSerialLine(l){
+  if (l.startsWith('DATA:')) {
+    const kind = pending;
+    clearPending();
+    if (kind === 'thd')          onThdCapture(l);
+    else if (kind === 'scope')   onScopeCapture(l);
+    else if (kind === 'kcal')    onKCalCapture(l);
+    else if (kind === 'measure') parseResCycle(l);
+    else if (kind === 'discard') addLog('Captura tardía descartada (ya detenida)', 'info');
+    else addLog('DATA inesperada descartada (ninguna captura en curso)', 'warn');
+  } else if (l.startsWith('ERR:') && pending) {
+    const kind = pending;
+    addLog('← ' + l, 'err');
+    clearPending();
+    if (kind === 'scope') {
+      addLog('Osciloscopio: trama rechazada por el Arduino, reintentando', 'warn');
+      if (scopePreviewActive) requestScopeCapture();
+    } else if (kind === 'thd' && thdSweepActive) {
+      thdSweepIndex++;
+      requestThdCapture();
+    } else if (kind === 'kcal') {
+      abortKCal('trama rechazada por el Arduino');
+    }
+  } else {
+    const type = l.startsWith('OK') ? 'ok' : l.startsWith('ERR') ? 'err' : 'info';
+    if (!((pending === 'scope' || pending === 'thd') && l.startsWith('OK:'))) {
+      addLog('← ' + l, type);
+    }
+  }
+}
+
+// cierra el puerto en el orden correcto
+async function disconnect(){
+  connected = false;
+  readLoopActive = false;
+  stopScopePreview();  // el puerto va a cerrarse: no tiene sentido seguir "en directo" localmente
+  if (thdSweepActive) stopThdSweep('detenido');
+  if (kCalBits) abortKCal('puerto cerrado');
+  clearPending();      // ya no llegará ninguna respuesta pendiente
+
+  if (reader) {
+    try { await reader.cancel(); } catch(_){}
+    try { reader.releaseLock(); } catch(_){}
+    reader = null;
+  }
+
+  if (writer) {
+    try { writer.releaseLock(); } catch(_){}
+    writer = null;
+  }
+
+  if (port) {
+    try { await port.close(); } catch(e){ addLog('Aviso al cerrar: '+e.message,'warn'); }
+    port = null;
+  }
+
+  document.getElementById('btn-conn').textContent = 'Conectar';
+  document.getElementById('btn-conn').classList.remove('disc');
+  setStatus('','Desconectado');
+  addLog('Puerto cerrado','info');
+}
+
+// envia la trama de la senal y espera los datos
+async function sendParams(){
+  if (!connected) return;
+  stopScopePreview();  // no mezclar capturas del osciloscopio con una medida real
+  if (thdSweepActive) stopThdSweep('detenido');
+  measureTab = (activeTab === 'sin' || activeTab === 'tri' || activeTab === 'pul' || activeTab === 'old') ? activeTab : lastSignalTab;
+  if (oldLockActive() && measureTab !== 'old') {
+    addLog('Bloqueado: con el panel Pulso old seleccionado solo se envía la trama OLD', 'warn');
+    return;
+  }
+  const frame = buildFrame(measureTab);
+  clearResCycles();
+  pendingNCyc = numCycles;
+  if (await sendCapture(frame, 'measure', captureTimeoutMs(measureTab, numCycles))) {
+    const btn = document.getElementById('btn-send');
+    btn.classList.add('flash');
+    setTimeout(() => btn.classList.remove('flash'), 300);
+    addLog('→ '+frame, 'sent-'+measureTab);
+  }
+}
+
+// interpreta lo que se escribe en la consola
+async function runConsole(){
+  const input = document.getElementById('console-input');
+  const raw = input.value.trim().replace(/,(?=\d)/g, '.');
+  input.value = '';
+  if (!raw) return;
+  addLog('› ' + raw, 'info');
+
+  if (raw === 'light')  { setLight(true);  return; }
+  if (raw === 'dark')   { setLight(false); return; }
+  if (raw === 'play')   { setAnim(true);   return; }
+  if (raw === 'pause')  { setAnim(false);  return; }
+  if (raw === 'debug')  { unlockDebugTab(); return; }
+
+  if (raw.startsWith('TYPE:')) {
+    if (!connected) { addLog('← ERR: no conectado', 'err'); return; }
+    stopScopePreview();
+    if (thdSweepActive) stopThdSweep('detenido');
+    clearResCycles();
+    const rawParams = parseFrameParams(raw);
+    if (rawParams) { measureTab = rawParams.type.toLowerCase(); pendingRawParams = rawParams; }
+    const ncycMatch = raw.match(/NCYC:(\d+)/);
+    pendingNCyc = ncycMatch ? parseInt(ncycMatch[1], 10) : 1;
+    if (await sendCapture(raw, 'measure')) addLog('← trama enviada', 'ok');
+    return;
+  }
+
+  if (raw === 'clear') { clearLog(); return; }
+  if (raw === 'status') {
+    addLog('← ' + (connected ? 'conectado · 2M baud' : 'desconectado'), connected ? 'ok' : 'warn');
+    return;
+  }
+  if (raw === 'help') {
+    addLog('← Comandos disponibles:', 'info');
+    addLog('←   clear          — limpia la consola', 'info');
+    addLog('←   status         — muestra estado de conexión', 'info');
+    addLog('←   light          — activa modo claro', 'info');
+    addLog('←   dark           — activa modo oscuro', 'info');
+    addLog('←   play           — activa animación de señal', 'info');
+    addLog('←   pause          — para animación de señal', 'info');
+    addLog('←   help           — muestra esta ayuda', 'info');
+    addLog('← Trama directa: TYPE:SIN,F:100,AMP:5.00,OFF:0.00,MEM:0,INT:11,NCYC:1', 'info');
+    addLog('← Chip antiguo:  TYPE:OLD,T1:500,T2:10,MEM:0,INT:11,NCYC:3,NPTS:170', 'info');
+    return;
+  }
+
+  addLog('← comando inválido', 'err');
+}
+
+let resCycles  = [];   // [{t,ch0,ch1}, ...] por ciclo
+let resParams  = {};
+let resVisible = [];   // bool por ciclo: true = visible
+let pendingRawParams = null;  // params de la última trama cruda enviada por consola (ver runConsole/parseFrameParams)
+let pendingNCyc = 1;  // NCYC de la última trama enviada: el Arduino manda todos los ciclos juntos en una sola trama DATA:...END, hay que partirla en resCycles
+
+const CYCLE_PALETTE = [
+  '#60a5fa', // azul
+  '#f59e0b', // naranja
+  '#f43f5e', // rojo
+  '#4ade80', // verde
+  '#a78bfa', // violeta
+  '#22d3ee', // cyan
+  '#fb923c', // naranja oscuro
+  '#e879f9', // magenta
+];
+
+// color que le toca a cada ciclo
+function cycleColor(i) {
+  return CYCLE_PALETTE[i % CYCLE_PALETTE.length];
+}
+
+// trocea la trama DATA en ciclos y muestras
+function parseResCycle(line) {
+  const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
+  const samples = parts.map(p => {
+    const [t, ch0, ch1] = p.split(',').map(Number);
+    return { t, ch0, ch1 };
+  });
+
+  const nCyc = (measureTab === 'old') ? 1 : Math.max(1, pendingNCyc || 1);
+  const perCycle = Math.round(samples.length / nCyc);
+  const newCycles = [];
+  for (let i = 0; i < nCyc; i++) {
+    const start = i * perCycle;
+    const end   = (i === nCyc - 1) ? samples.length : start + perCycle;
+    const chunk = samples.slice(start, end);
+    if (chunk.length === 0) continue;
+    const t0 = chunk[0].t;
+    newCycles.push(chunk.map(s => ({ t: s.t - t0, ch0: s.ch0, ch1: s.ch1 })));
+  }
+
+  const wasEmpty = resCycles.length === 0;
+  newCycles.forEach(cycle => { resCycles.push(cycle); resVisible.push(true); });
+  if (wasEmpty) { resParams = pendingRawParams || snapshotParams(); pendingRawParams = null; }
+  pendingNCyc = 1;
+
+  const n = resCycles.length;
+  const perCycleCount = newCycles[0] ? newCycles[0].length : 0;
+  if (measureTab === 'old') {
+    addLog('← tren recibido (' + samples.length + ' pulso' + (samples.length !== 1 ? 's' : '') + ', 1 muestra por pulso)', 'ok');
+    document.getElementById('res-meta').textContent = samples.length + ' pulso' + (samples.length !== 1 ? 's' : '') + ' · 1 muestra por pulso';
+  } else {
+    addLog('← ' + newCycles.length + ' ciclo' + (newCycles.length > 1 ? 's' : '') + ' recibido' + (newCycles.length > 1 ? 's' : '') + ' (' + samples.length + ' muestras totales)', 'ok');
+    document.getElementById('res-meta').textContent = n + ' ciclo' + (n>1?'s':'') + ' · ' + perCycleCount + ' muestras/ciclo';
+  }
+  document.getElementById('res-empty').style.display  = 'none';
+  document.getElementById('res-charts').style.display = 'block';
+  document.getElementById('res-legend').style.display = 'flex';
+  document.getElementById('btn-export-xlsx').disabled = false;
+
+  updateLegend();
+  redrawAll();
+}
+
+// rehace la leyenda de ciclos
+function updateLegend() {
+  const legend = document.getElementById('res-legend');
+  const dacItem = legend.firstElementChild;
+  legend.innerHTML = '';
+  legend.appendChild(dacItem);
+
+  resCycles.forEach((_, i) => {
+    const color = cycleColor(i);
+    const item = document.createElement('div');
+    item.className = 'res-legend-item ' + (resVisible[i] ? 'active' : 'inactive');
+    item.style.color = color;
+    item.innerHTML = `<div class="res-legend-dot" style="background:${color}"></div>Ciclo ${i+1}`;
+    item.onclick = () => {
+      resVisible[i] = !resVisible[i];
+      item.className = 'res-legend-item ' + (resVisible[i] ? 'active' : 'inactive');
+      redrawAll();
+    };
+    legend.appendChild(item);
+  });
+}
+
+// redibuja las tres graficas de resultados
+function redrawAll() {
+  drawIVChart();
+  drawResChart('cv-ch0', 'ch0');
+  drawResChart('cv-ch1', 'ch1');
+}
+
+// borra los resultados anteriores
+function clearResCycles() {
+  resCycles  = [];
+  resVisible = [];
+  hoverPts['cv-iv'] = hoverPts['cv-ch0'] = hoverPts['cv-ch1'] = [];
+  hideTip();
+  document.getElementById('res-meta').textContent    = 'Sin datos';
+  document.getElementById('res-empty').style.display  = 'block';
+  document.getElementById('res-charts').style.display = 'none';
+  document.getElementById('res-legend').style.display = 'none';
+  document.getElementById('btn-export-xlsx').disabled = true;
+  const legend = document.getElementById('res-legend');
+  const dacItem = legend.firstElementChild;
+  legend.innerHTML = '';
+  legend.appendChild(dacItem);
+}
+
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+// checksum que pide el formato zip
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC32_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+// empaqueta ficheros en un zip sin comprimir
+function zipStore(files) {
+  const dosTime = 0, dosDate = 0x21;
+  const localParts = [], centralParts = [];
+  let offset = 0;
+
+  files.forEach(f => {
+    const nameBytes = new TextEncoder().encode(f.name);
+    const crc = crc32(f.data);
+    const size = f.data.length;
+
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);   // local file header signature
+    lv.setUint16(4, 20, true);           // version needed
+    lv.setUint16(6, 0, true);            // flags
+    lv.setUint16(8, 0, true);            // method = 0 (store)
+    lv.setUint16(10, dosTime, true);
+    lv.setUint16(12, dosDate, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, size, true);        // compressed size
+    lv.setUint32(22, size, true);        // uncompressed size
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);           // extra field length
+    local.set(nameBytes, 30);
+    localParts.push(local, f.data);
+
+    const central = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(central.buffer);
+    cv.setUint32(0, 0x02014b50, true);   // central directory header signature
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, dosTime, true);
+    cv.setUint16(14, dosDate, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);           // extra field length
+    cv.setUint16(32, 0, true);           // comment length
+    cv.setUint16(34, 0, true);           // disk number start
+    cv.setUint16(36, 0, true);           // internal attrs
+    cv.setUint32(38, 0, true);           // external attrs
+    cv.setUint32(42, offset, true);      // offset of local header
+    central.set(nameBytes, 46);
+    centralParts.push(central);
+
+    offset += local.length + f.data.length;
+  });
+
+  const centralStart = offset;
+  let centralSize = 0;
+  centralParts.forEach(c => centralSize += c.length);
+
+  const end = new Uint8Array(22);
+  const ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true);     // end of central directory signature
+  ev.setUint16(4, 0, true);
+  ev.setUint16(6, 0, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, centralSize, true);
+  ev.setUint32(16, centralStart, true);
+  ev.setUint16(20, 0, true);             // comment length
+
+  return new Blob([...localParts, ...centralParts, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+// escapa caracteres para el XML del xlsx
+function xmlEscape(s) {
+  return String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]));
+}
+
+// numero de columna a letra de Excel
+function colLetter(i) {
+  let s = '', n = i + 1;
+  while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
+  return s;
+}
+
+// color hexadecimal al formato de Excel
+function hexToARGB(hex) {
+  return 'FF' + hex.replace('#', '').toUpperCase();
+}
+
+const HEADER_FILL_ARGB = 'FFC6EFCE';  // verde clarito (relleno)
+
+// construye el xlsx con una hoja por ciclo
+function buildXlsxMultiSheet(sheets) {
+  const tabARGB = sheets.map(s => hexToARGB(s.color || '#4b5563'));
+
+  const fills = [
+    '<fill><patternFill patternType="none"/></fill>',
+    '<fill><patternFill patternType="gray125"/></fill>',
+    `<fill><patternFill patternType="solid"><fgColor rgb="${HEADER_FILL_ARGB}"/><bgColor indexed="64"/></patternFill></fill>`,
+  ];
+
+  const cellXfs = [
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>',
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>',
+  ];
+  const headerXfId = 1;
+
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><name val="Calibri"/><sz val="11"/></font><font><name val="Calibri"/><b/><sz val="11"/></font></fonts><fills count="${fills.length}">${fills.join('')}</fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${cellXfs.length}">${cellXfs.join('')}</cellXfs></styleSheet>`;
+
+  const sheetXmls = sheets.map((sheet, si) => {
+    const rowsXml = sheet.rows.map((row, ri) => {
+      const isHeader = ri === 0;
+      const cells = row.map((val, ci) => {
+        const ref = colLetter(ci) + (ri + 1);
+        const cellStyleAttr = isHeader ? ` s="${headerXfId}"` : '';
+        if (typeof val === 'number' && isFinite(val)) return `<c r="${ref}"${cellStyleAttr}><v>${val}</v></c>`;
+        return `<c r="${ref}"${cellStyleAttr} t="inlineStr"><is><t>${xmlEscape(val)}</t></is></c>`;
+      }).join('');
+      return `<row r="${ri + 1}">${cells}</row>`;
+    }).join('');
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><tabColor rgb="${tabARGB[si]}"/></sheetPr><sheetData>${rowsXml}</sheetData></worksheet>`;
+  });
+
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}</Types>`;
+
+  const rootRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+
+  const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s, i) => `<sheet name="${xmlEscape(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`;
+
+  const stylesRid = sheets.length + 1;
+  const workbookRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}<Relationship Id="rId${stylesRid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+
+  const enc = s => new TextEncoder().encode(s);
+  return zipStore([
+    { name: '[Content_Types].xml',        data: enc(contentTypes) },
+    { name: '_rels/.rels',                data: enc(rootRels) },
+    { name: 'xl/workbook.xml',            data: enc(workbookXml) },
+    { name: 'xl/_rels/workbook.xml.rels', data: enc(workbookRels) },
+    { name: 'xl/styles.xml',              data: enc(stylesXml) },
+    ...sheetXmls.map((xml, i) => ({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc(xml) })),
+  ]);
+}
+
+// exporta los resultados y lanza la descarga
+function exportResultsXlsx() {
+  if (resCycles.length === 0) return;
+  const header = ['Muestra', 't (µs)', 'CH0 V01 (V)', 'CH1 V02 (V)', 'DAC referencia (V)'];
+  const sheets = resCycles.map((cycle, ci) => ({
+    name: 'Ciclo ' + (ci + 1),
+    color: cycleColor(ci),
+    rows: [header, ...cycle.map((d, si) => [si + 1, d.t, d.ch0, d.ch1, Number(dacAt(d.t, resParams).toFixed(4))])],
+  }));
+
+  const blob = buildXlsxMultiSheet(sheets);
+  const type = (resParams && resParams.type) ? resParams.type.toLowerCase() : 'medida';
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `signalgen_${type}_${ts}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  addLog('Exportado ' + a.download, 'ok');
+}
+
+// extrae los parametros de una trama de texto
+function parseFrameParams(frame) {
+  const num = key => { const m = frame.match(new RegExp(key + ':(-?[\\d.]+)')); return m ? parseFloat(m[1]) : undefined; };
+  const typeMatch = frame.match(/TYPE:([A-Z]+)/);
+  if (!typeMatch) return null;
+  const type = typeMatch[1];
+  if (type === 'SIN') return { type, freq: num('F'), amp: num('AMP'), off: num('OFF') };
+  if (type === 'TRI') return { type, freq: num('F'), vmax: num('VMAX'), vmin: num('VMIN') };
+  if (type === 'PUL') return { type, vhi: num('VHI'), vlo: num('VLO'), dur: num('DUR'), per: num('PER') * 1000 };
+  if (type === 'OLD') return { type, t1: num('T1'), t2: num('T2') * 1000 };
+  return null;
+}
+
+// guarda los parametros con los que se lanzo la medida
+function snapshotParams() {
+  if (measureTab === 'sin') return {
+    type:'SIN',
+    freq: parseFloat(document.getElementById('s-freq').value),
+    amp:  parseFloat(document.getElementById('s-amp').value) / 20,
+    off:  parseFloat(document.getElementById('s-off').value) / 20
+  };
+  if (measureTab === 'tri') return {
+    type:'TRI',
+    freq: parseFloat(document.getElementById('t-freq').value),
+    vmax: parseFloat(document.getElementById('t-vmax').value) / 20,
+    vmin: parseFloat(document.getElementById('t-vmin').value) / 20
+  };
+  if (measureTab === 'old') return {
+    type:'OLD',
+    t1: parseFloat(document.getElementById('o-t1').value),
+    t2: parseFloat(document.getElementById('o-t2').value) * 1000   // ms → µs
+  };
+  if (measureTab === 'pul') return {
+    type:'PUL',
+    vhi: parseFloat(document.getElementById('p-vhi').value) / 20,
+    vlo: parseFloat(document.getElementById('p-vlo').value) / 20,
+    dur: parseFloat(document.getElementById('p-dur').value),
+    per: parseFloat(document.getElementById('p-gap').value) * 1000
+  };
+  return {};
+}
+
+// tension que tenia el DAC en un instante dado
+function dacAt(t_us, p) {
+  if (!p || !p.type) return 0;
+  const t = t_us / 1e6;
+  if (p.type === 'SIN')
+    return p.off + p.amp * Math.sin(2 * Math.PI * ((t * p.freq) % 1));
+  if (p.type === 'TRI') {
+    const ph = (t * p.freq) % 1;
+    return ph < 0.5
+      ? p.vmin + (ph / 0.5) * (p.vmax - p.vmin)
+      : p.vmax - ((ph - 0.5) / 0.5) * (p.vmax - p.vmin);
+  }
+  if (p.type === 'PUL')
+    return (t_us % p.per) < p.dur ? p.vhi : p.vlo;
+  if (p.type === 'OLD')
+    return 1;
+  return 0;
+}
+
+// dibuja una de las dos graficas temporales
+function drawResChart(id, field) {
+  const canvas = document.getElementById(id);
+  if (!canvas || resCycles.length === 0) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth  || 640;
+  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = {l:38, r:10, t:8, b:20};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  let vmin = Infinity, vmax = -Infinity;
+  resCycles.forEach(cycle => {
+    cycle.forEach(d => {
+      vmin = Math.min(vmin, d[field], dacAt(d.t, resParams));
+      vmax = Math.max(vmax, d[field], dacAt(d.t, resParams));
+    });
+  });
+  if (vmax - vmin < 0.01) { vmax += 0.1; vmin -= 0.1; }
+  const vr   = vmax - vmin;
+  const tmax = Math.max(...resCycles.map(c => c[c.length-1].t)) || 1;
+
+  const toX = t => pad.l + (t / tmax) * cw;
+  const toY = v => pad.t + ch - ((v - vmin) / vr) * ch;
+
+  const isLightMode = document.body.classList.contains('light');
+  ctx.strokeStyle = isLightMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cw, y); ctx.stroke();
+  }
+
+  ctx.fillStyle = isLightMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)';
+  ctx.font = '9px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const v = vmax - (vr / 4) * i;
+    ctx.fillText(v.toFixed(1) + 'V', pad.l - 4, pad.t + (ch / 4) * i + 3);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.fillText('0', pad.l, pad.t + ch + 13);
+  ctx.textAlign = 'right';
+  ctx.fillText((tmax / 1000).toFixed(1) + ' ms', pad.l + cw, pad.t + ch + 13);
+
+  ctx.strokeStyle = isLightMode ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  resCycles[0].forEach((d, i) => {
+    const x = toX(d.t), y = toY(dacAt(d.t, resParams));
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  const pts = [];
+
+  resCycles.forEach((cycle, ci) => {
+    if (!resVisible[ci]) return;
+    const color = cycleColor(ci);
+    ctx.strokeStyle = color;
+    ctx.lineWidth   = 1.5;
+    ctx.shadowColor = color;
+    ctx.shadowBlur  = 4;
+    ctx.beginPath();
+    cycle.forEach((d, i) => {
+      const x = toX(d.t), y = toY(d[field]);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      pts.push({ x, y, color,
+        label: 'Ciclo ' + (ci+1) + ' · t = ' + (d.t / 1000).toFixed(2) + ' ms · ' + d[field].toFixed(3) + ' V' });
+    });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  });
+
+  resCycles[0].forEach(d => {
+    const v = dacAt(d.t, resParams);
+    pts.push({ x: toX(d.t), y: toY(v), color: '#9aa3b5',
+      label: 'DAC · t = ' + (d.t / 1000).toFixed(2) + ' ms · ' + v.toFixed(3) + ' V' });
+  });
+
+  hoverPts[id] = pts;
+}
+
+// frecuencia que se esta previsualizando
+function previewFreqNow() {
+  const t = (activeTab === 'sin' || activeTab === 'tri' || activeTab === 'pul' || activeTab === 'old') ? activeTab : lastSignalTab;
+  if (t === 'tri') return sv('t-freq');
+  if (t === 'pul') return 1000 / sv('p-gap');
+  if (t === 'old') return 1000 / sv('o-t2');
+  return sv('s-freq');
+}
+
+// arranca la animacion de la previsualizacion
+function startAnim() {
+  if (animFrame) return;
+  animLast = null;
+  function frame(ts) {
+    if (animLast === null) animLast = ts;
+    const dt = (ts - animLast) / 1000;  // segundos desde último frame
+    animLast = ts;
+
+    const rate = 0.3 * Math.pow(previewCycles(previewFreqNow()), 0.75);
+    animPhase = (animPhase + dt * rate) % 1;
+    drawChart(animPhase);
+    animFrame = requestAnimationFrame(frame);
+  }
+  animFrame = requestAnimationFrame(frame);
+}
+
+// para la animacion
+function stopAnim() {
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+}
+
+// permite escribir el valor a mano en vez de usar el deslizador
+function makeEditable(spanId, sliderId, scale) {
+  const span   = document.getElementById(spanId);
+  const slider = document.getElementById(sliderId);
+  span.setAttribute('contenteditable', 'true');
+  span.style.cursor = 'text';
+
+  span.addEventListener('focus', () => {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+
+  span.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      span.textContent = (parseFloat(slider.value) / scale).toFixed(scale > 1 ? 2 : 0);
+      span.blur();
+    }
+  });
+
+  span.addEventListener('blur', () => {
+    const realVal   = parseFloat(span.textContent.replace(',', '.'));
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    if (!isNaN(realVal)) {
+      const sliderVal = Math.min(max, Math.max(min, realVal * scale));
+      slider.value = sliderVal;
+      slider.dispatchEvent(new Event('input'));
+      if (sliderId === 's-amp') clampSinRanges('amp');
+      if (sliderId === 's-off') clampSinRanges('off');
+    } else {
+      span.textContent = (parseFloat(slider.value) / scale).toFixed(scale > 1 ? 2 : 0);
+    }
+    span.textContent = (parseFloat(slider.value) / scale).toFixed(scale > 1 ? 2 : 0);
+  });
+}
+
+(function(){
+  const span = document.getElementById('cycles-val');
+
+  span.addEventListener('focus', () => {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+
+  span.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
+    if (e.key === 'Escape') { e.preventDefault(); span.textContent = numCycles; span.blur(); }
+  });
+
+  span.addEventListener('blur', () => {
+    const val = parseInt(span.textContent.replace(',', '.'), 10);
+    numCycles = (!isNaN(val) && val >= 1) ? val : 1;
+    numCycles = Math.min(maxCyclesNow(), numCycles);
+    span.textContent = numCycles;
+    if (!oldCounters()) {
+      const maxP = maxPointsForCycles();
+      if (numPoints > maxP) {
+        numPoints = maxP;
+        document.getElementById('points-val').textContent = numPoints;
+      }
+    }
+    upd();
+  });
+})();
+
+(function(){
+  const span = document.getElementById('points-val');
+
+  span.addEventListener('focus', () => {
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+
+  span.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); span.blur(); }
+    if (e.key === 'Escape') { e.preventDefault(); span.textContent = numPoints; span.blur(); }
+  });
+
+  span.addEventListener('blur', () => {
+    const val   = parseInt(span.textContent.replace(',', '.'), 10);
+    const maxP  = maxPointsForCycles();
+    numPoints = (!isNaN(val)) ? Math.min(maxP, Math.max(1, val)) : numPoints;
+    span.textContent = numPoints;
+    upd();
+  });
+})();
+
+// acota amplitud y offset para que entre los dos no pasen de 1 V
+function clampSinRanges(changed) {
+  const ampEl = document.getElementById('s-amp');
+  const offEl = document.getElementById('s-off');
+  const ampVspan = document.getElementById('s-amp-v');
+  const offVspan = document.getElementById('s-off-v');
+  let amp = parseFloat(ampEl.value) / 20;  // V
+  let off = parseFloat(offEl.value) / 20;  // V
+  let changedSomething = false;
+
+  if (changed === 'amp') {
+    const maxOff = 1 - amp;
+    if (Math.abs(off) > maxOff + 1e-9) {
+      off = Math.sign(off) * maxOff;
+      offEl.value = Math.round(off * 20);
+      offVspan.textContent = off.toFixed(2);   // forzar actualización inmediata del número
+      changedSomething = true;
+    }
+  } else {
+    const maxAmp = 1 - Math.abs(off);
+    if (amp > maxAmp + 1e-9) {
+      amp = Math.max(0, maxAmp);
+      ampEl.value = Math.round(amp * 20);
+      ampVspan.textContent = amp.toFixed(2);   // forzar actualización inmediata del número
+      changedSomething = true;
+    }
+  }
+
+  document.getElementById('s-amp-max').textContent = (1 - Math.abs(off)).toFixed(2) + ' V';
+  document.getElementById('s-off-min').textContent = (-(1 - amp)).toFixed(2) + ' V';
+  document.getElementById('s-off-max').textContent = '+' + (1 - amp).toFixed(2) + ' V';
+
+  if (changedSomething) upd();
+}
+
+makeEditable('s-freq-v', 's-freq', 1);
+makeEditable('s-amp-v',  's-amp',  20);
+makeEditable('s-off-v',  's-off',  20);
+makeEditable('t-freq-v', 't-freq', 1);
+makeEditable('t-vmax-v', 't-vmax', 20);
+makeEditable('t-vmin-v', 't-vmin', 20);
+makeEditable('p-vhi-v',  'p-vhi',  20);
+makeEditable('p-vlo-v',  'p-vlo',  20);
+makeEditable('p-dur-v',  'p-dur',  1);
+makeEditable('p-gap-v',  'p-gap',  1);
+makeEditable('o-t1-v',   'o-t1',   1);
+makeEditable('o-t2-v',   'o-t2',   1);
+
+// pausa o reanuda la animacion
+function setAnim(enabled) {
+  if (enabled) startAnim();
+  else { stopAnim(); drawChart(animPhase); }
+  const t = document.getElementById('toggle-anim');
+  if (t) t.checked = enabled;
+  const btn = document.getElementById('anim-btn');
+  const x1  = document.getElementById('anim-x1');
+  const x2  = document.getElementById('anim-x2');
+  if (btn) btn.classList.toggle('paused', !enabled);
+  if (x1)  x1.style.display = enabled ? 'none' : '';
+  if (x2)  x2.style.display = enabled ? 'none' : '';
+}
+
+// invierte el estado de la animacion
+function toggleAnim() {
+  const isRunning = !!animFrame;
+  setAnim(!isRunning);
+}
+
+// aplica el tema claro o el oscuro
+function setLight(enabled) {
+  document.body.classList.toggle('light', enabled);
+  const cfgToggle = document.getElementById('toggle-light-cfg');
+  if (cfgToggle) cfgToggle.checked = enabled;
+  drawChart(animPhase);
+  if (resCycles.length > 0) redrawAll();
+  const icon = document.getElementById('theme-icon');
+  if (enabled) {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
+}
+
+// cambia de tema
+function toggleTheme() {
+  const isLight = document.body.classList.contains('light');
+  setLight(!isLight);
+}
+
+const RBIAS_OHM  = 3400;
+const K_TEORICA  = {
+  '00': 0.125 / RBIAS_OHM,   // ×1/8  →  36,8 µA/V
+  '01': 0.25  / RBIAS_OHM,   // ×1/4  →  73,5 µA/V
+  '10': 0.5   / RBIAS_OHM,   // ×1/2  → 147,1 µA/V
+  '11': 1.0   / RBIAS_OHM    // ×1    → 294,1 µA/V
+};
+
+const CAL_FREQ = 5;      // Hz
+const CAL_NCYC = 2;      // ciclos
+const CAL_NPTS = 255;    // puntos por ciclo
+const CAL_VMAX = 1.00;   // V (máximo de tensión de control del TK042)
+const CAL_VMIN = 0.00;   // V
+
+const CAL_VCTRL_MIN = 0.1;   // V
+
+const ADC_FS_V    = 5.0;
+const ADC_MAX_CNT = 4095;
+
+const CAL_MIN_DROP  = 50;    // cuentas de ADC de caída máxima sobre R
+const CAL_DROP_OBJ  = 400;   // caída "cómoda" (≈0.49 V) usada para sugerir R
+const CAL_MAX_WAITS = 20;    // reintentos de 250 ms esperando a que se libere la línea
+
+let kMedidas = {};
+['00','01','10','11'].forEach(b => { kMedidas[b] = nuevoKReg(b); });
+let useKCal = false;
+
+// registro vacio de calibracion de un rango
+function nuevoKReg(bits) {
+  return {
+    k: null,               // K medida (A/V); null = este rango no se ha calibrado
+    n: 0, ntot: 0,         // puntos válidos / muestras recibidas
+    R: null, dropCnt: 0,   // resistencia patrón (Ω) y caída máxima (cuentas de ADC)
+    aviso: null            // texto del aviso de resolución, si lo hubo
+  };
+}
+
+// devuelve la K medida de un rango
+function kCalculada(bits) {
+  const m = kMedidas[bits];
+  return (m && Number.isFinite(m.k) && m.k !== 0) ? m.k : K_TEORICA[bits];
+}
+
+// devuelve la K que se esta usando
+function activeK() {
+  return (useKCal ? kCalculada(cfgInt) : K_TEORICA[cfgInt]) || K_TEORICA['11'];
+}
+
+// guarda la calibracion en el navegador
+function saveKCfg() {
+  try {
+    localStorage.setItem('tk042_kmedidas', JSON.stringify(kMedidas));
+    localStorage.setItem('tk042_use_kcal', useKCal ? '1' : '0');
+  } catch (e) { /* localStorage no disponible (p.ej. file:// en algún navegador) */ }
+}
+
+// recupera la calibracion guardada
+function loadKCfg() {
+  try {
+    const s = JSON.parse(localStorage.getItem('tk042_kmedidas'));
+    if (s) ['00','01','10','11'].forEach(b => {
+      if (!s[b]) return;
+      const g = kMedidas[b];
+      const k = parseFloat(s[b].k);
+      if (isFinite(k) && k !== 0) {
+        g.k       = k;
+        g.n       = parseInt(s[b].n, 10)    || 0;
+        g.ntot    = parseInt(s[b].ntot, 10) || 0;
+        g.R       = isFinite(parseFloat(s[b].R)) ? parseFloat(s[b].R) : null;
+        g.dropCnt = parseFloat(s[b].dropCnt) || 0;
+        g.aviso   = typeof s[b].aviso === 'string' ? s[b].aviso : null;
+      } else {
+        const i = parseFloat(s[b].i), v = parseFloat(s[b].v);
+        if (isFinite(i) && i > 0 && isFinite(v) && v > 0) g.k = i / v;
+      }
+    });
+    useKCal = localStorage.getItem('tk042_use_kcal') === '1';
+  } catch (e) { /* sin datos guardados o localStorage no disponible */ }
+}
+
+// formatea una corriente con su prefijo
+function fmtAmp(a) {
+  if (!Number.isFinite(a)) return '—';   // Number.isFinite: isFinite(null) sería true
+  const s = a < 0 ? '−' : '';
+  const x = Math.abs(a);
+  if (x === 0) return '0 A';
+  if (x < 1e-6) return s + (x * 1e9).toFixed(2) + ' nA';
+  if (x < 1e-3) return s + (x * 1e6).toFixed(3) + ' µA';
+  return s + (x * 1e3).toFixed(4) + ' mA';
+}
+
+// formatea una constante K
+function fmtK(k) { return Number.isFinite(k) ? fmtAmp(k) + '/V' : '—'; }
+
+// formatea una resistencia
+function fmtOhm(r) {
+  if (!Number.isFinite(r) || r <= 0) return '—';
+  if (r >= 1e6) return (r / 1e6).toFixed(r >= 1e7 ? 0 : 2) + ' MΩ';
+  if (r >= 1e3) return (r / 1e3).toFixed(r >= 1e4 ? 0 : 2) + ' kΩ';
+  return r.toFixed(r >= 100 ? 0 : 1) + ' Ω';
+}
+
+// resistencia patron recomendada para un rango
+function rSugerida(bits) {
+  const iMax = Math.abs(K_TEORICA[bits]) * CAL_VMAX;
+  return (CAL_DROP_OBJ * ADC_FS_V / ADC_MAX_CNT) / iMax;
+}
+
+// refresca el panel de calibracion
+function refreshKUI() {
+  const optTeo = document.getElementById('k-opt-teo');
+  if (!optTeo) return;
+  optTeo.classList.toggle('k-sel', !useKCal);
+  document.getElementById('k-opt-cal').classList.toggle('k-sel', useKCal);
+  document.getElementById('k-grid').classList.toggle('k-on', useKCal);
+
+  ['00','01','10','11'].forEach(b => {
+    const m = kMedidas[b];
+    document.getElementById('k-hint-' + b).textContent =
+      'R sug. ≈ ' + fmtOhm(rSugerida(b));
+    document.getElementById('k-res-' + b).textContent = 'K = ' + fmtK(kCalculada(b));
+
+    const st = document.getElementById('k-stats-' + b);
+    const lineas = ['K teórica ' + fmtK(K_TEORICA[b])];
+    if (Number.isFinite(m.k) && m.k !== 0) {
+      const err = (m.k - K_TEORICA[b]) / K_TEORICA[b] * 100;
+      lineas.push('error ' + (err >= 0 ? '+' : '−') + Math.abs(err).toFixed(2) + '%');
+      lineas.push('N ' + m.n + '/' + m.ntot + ' · ΔV ' + Math.round(m.dropCnt) + ' cts');
+      lineas.push('R = ' + fmtOhm(m.R));
+    } else {
+      lineas.push('(sin calibrar)');
+    }
+    st.textContent = lineas.join('\n');
+    st.style.whiteSpace = 'pre-line';
+
+    const w = document.getElementById('k-warn-' + b);
+    w.textContent = m.aviso ? '⚠ ' + m.aviso : '';
+    w.style.whiteSpace = 'pre-line';
+  });
+  updateActionButtons();
+}
+
+// elige entre K teorica y K calculada
+function setUseKCal(on) {
+  useKCal = on;
+  saveKCfg();
+  refreshKUI();
+  if (resCycles.length > 0) redrawAll();
+}
+
+let kCalBits   = null;   // rango que se está calibrando ahora, o null
+let kCalR      = 0;      // R congelada al lanzar (Ω), por si se edita el campo a media medida
+let kCalParams = null;   // params de la trama enviada, para reconstruir Vctrl con dacAt()
+let kCalWaits  = 0;      // reintentos gastados esperando a que se libere la línea
+
+// fija la resistencia patron introducida
+function setKCalR() {
+  try { localStorage.setItem('tk042_kcal_r', document.getElementById('k-rpatron').value); }
+  catch (e) { /* localStorage no disponible */ }
+}
+
+// recupera la resistencia patron guardada
+function loadKCalR() {
+  try {
+    const r = localStorage.getItem('tk042_kcal_r');
+    if (r !== null && isFinite(parseFloat(r))) document.getElementById('k-rpatron').value = r;
+  } catch (e) { /* sin datos guardados */ }
+}
+
+// escribe el mensaje de estado de una calibracion
+function setKCalMsg(bits, msg, tipo) {
+  const el = document.getElementById('k-msg-' + bits);
+  if (!el) return;
+  el.textContent = msg || '';
+  el.className = 'k-msg' + (tipo ? ' ' + tipo : '');
+}
+
+// cancela la calibracion en curso
+function abortKCal(motivo) {
+  if (!kCalBits) return;
+  const bits = kCalBits;
+  kCalBits = null;
+  setKCalMsg(bits, motivo, 'err');
+  addLog('CAL ' + bits + ' | cancelada: ' + motivo, 'warn');
+  updateActionButtons();
+}
+
+// lanza la calibracion de un rango
+function startKCal(bits) {
+  if (!connected) { addLog('CAL ' + bits + ' | no hay conexión con el Arduino', 'err'); return; }
+  if (kCalBits)   { addLog('CAL ' + bits + ' | ya hay una calibración en curso (' + kCalBits + ')', 'warn'); return; }
+
+  const R = parseFloat(document.getElementById('k-rpatron').value);
+  if (!isFinite(R) || R <= 0) {
+    setKCalMsg(bits, 'falta R', 'err');
+    addLog('CAL ' + bits + ' | introduce antes el valor de la resistencia patrón (Ω)', 'err');
+    return;
+  }
+
+  if (scopePreviewActive) stopScopePreview();
+  if (thdSweepActive) stopThdSweep('detenido');
+
+  kCalBits  = bits;
+  kCalR     = R;
+  kCalWaits = 0;
+  setKCalR();
+  updateActionButtons();   // bloquea ya los cuatro botones, aunque todavía se esté esperando la línea
+  requestKCalCapture();
+}
+
+// pide la rampa de calibracion al Arduino
+async function requestKCalCapture() {
+  if (!kCalBits) return;
+
+  if (pending) {
+    if (kCalWaits++ < CAL_MAX_WAITS) {
+      setKCalMsg(kCalBits, 'esperando línea…', '');
+      setTimeout(requestKCalCapture, 250);
+      return;
+    }
+    abortKCal('línea ocupada (' + pending + ')');
+    return;
+  }
+
+  const bits = kCalBits;
+  const frame = 'TYPE:TRI,F:' + CAL_FREQ +
+                ',VMAX:' + CAL_VMAX.toFixed(2) +
+                ',VMIN:' + CAL_VMIN.toFixed(2) +
+                ',MEM:' + cfgMem + ',INT:' + bits +
+                ',NCYC:' + CAL_NCYC + ',NPTS:' + CAL_NPTS;
+  kCalParams = parseFrameParams(frame);
+
+  setKCalMsg(bits, 'midiendo…', '');
+  const ok = await sendCapture(frame, 'kcal', CAL_NCYC / CAL_FREQ * 1000 * 2 + 5000);
+  if (ok) addLog('→ ' + frame, 'sent-tri');
+  else    abortKCal('no se pudo enviar la trama');
+}
+
+// calcula K promediando corriente y tension de la rampa
+function calcularK(samples, params, R) {
+  const enCuentas = v => Math.abs(v) * ADC_MAX_CNT / ADC_FS_V;
+
+  let n = 0, sumV = 0, sumI = 0, nBajo = 0, dropCnt = 0;
+
+  for (const s of samples) {
+    if (!isFinite(s.t) || !isFinite(s.ch0) || !isFinite(s.ch1)) continue;
+
+    const v = dacAt(s.t, params);
+    if (!isFinite(v)) continue;
+
+    if (Math.abs(v) < CAL_VCTRL_MIN) { nBajo++; continue; }
+
+    const dV = s.ch0 - s.ch1;          // caída sobre R, con signo
+    dropCnt = Math.max(dropCnt, enCuentas(dV));
+    sumV += v;
+    sumI += dV / R;                    // ley de Ohm: I = ΔV / R
+    n++;
+  }
+
+  const base = { n, ntot: samples.length, nBajo, dropCnt };
+  if (n === 0)     return Object.assign({ ok: false, motivo: 'no quedan puntos válidos' }, base);
+  if (sumV === 0)  return Object.assign({ ok: false, motivo: 'la tensión de control media es cero' }, base);
+
+  return Object.assign({ ok: true, k: (sumI / n) / (sumV / n) }, base);
+}
+
+// recibe la rampa y guarda el resultado
+function onKCalCapture(line) {
+  const bits = kCalBits;
+  kCalBits = null;
+  if (!bits) { addLog('CAL | captura recibida sin calibración en curso: descartada', 'warn'); return; }
+
+  const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
+  const samples = parts.map(p => {
+    const [t, ch0, ch1] = p.split(',').map(Number);
+    return { t, ch0, ch1 };
+  });
+
+  const R   = kCalR;
+  const res = calcularK(samples, kCalParams, R);
+  const m   = kMedidas[bits];
+
+  if (!res.ok) {
+    setKCalMsg(bits, 'medida imposible', 'err');
+    addLog('CAL ' + bits + ' | R = ' + R + ' Ω | medida imposible: ' + res.motivo +
+           ' (' + res.n + '/' + res.ntot + ' puntos válidos)', 'err');
+    updateActionButtons();
+    return;
+  }
+
+  const kTeo = K_TEORICA[bits];
+  const err  = (res.k - kTeo) / kTeo * 100;
+
+  const aviso = res.dropCnt < CAL_MIN_DROP
+    ? 'caída máxima ' + Math.round(res.dropCnt) + ' cuentas de ADC (< ' + CAL_MIN_DROP +
+      '): R demasiado pequeña para este rango, la caída no llega a la resolución del conversor. ' +
+      'Repite con R ≈ ' + fmtOhm(rSugerida(bits)) + ' o mayor'
+    : null;
+
+  m.k = res.k;
+  m.n = res.n;
+  m.ntot = res.ntot;
+  m.R = R;
+  m.dropCnt = res.dropCnt;
+  m.aviso = aviso;
+
+  saveKCfg();
+  setKCalMsg(bits, aviso ? 'medida con aviso' : 'medida OK', aviso ? 'warn' : '');
+  refreshKUI();
+  if (useKCal && resCycles.length > 0) redrawAll();
+
+  addLog('CAL ' + bits + ' | R = ' + R + ' Ω' +
+         ' | N = ' + res.n +
+         ' | K = ' + fmtK(res.k) +
+         ' | error = ' + (err >= 0 ? '+' : '−') + Math.abs(err).toFixed(2) + '%',
+         aviso ? 'warn' : 'ok');
+  if (aviso) addLog('CAL ' + bits + ' | AVISO: ' + aviso, 'warn');
+  if (!useKCal && res.k > 0) addLog('CAL ' + bits + ' | activa «K calculada» para que las gráficas usen esta K', 'info');
+
+  updateActionButtons();
+}
+
+// texto de la corriente para las etiquetas
+function currentStr(volts) {
+  const I = volts * activeK();
+  const sign = I < 0 ? '-' : '';
+  const absI = Math.abs(I);
+  if (absI === 0) return '0 A';
+  if (absI < 1e-6) return sign + (absI * 1e9).toFixed(1) + ' nA';
+  if (absI < 1e-3) return sign + (absI * 1e6).toFixed(2) + ' µA';
+  return sign + (absI * 1e3).toFixed(3) + ' mA';
+}
+
+// dibuja la curva caracteristica
+function drawIVChart() {
+  const canvas = document.getElementById('cv-iv');
+  if (!canvas || resCycles.length === 0) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth  || 640;
+  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = {l:48, r:10, t:8, b:20};
+  const cw = W - pad.l - pad.r;
+  const ch = H - pad.t - pad.b;
+
+  const k = activeK();
+
+  let allV = [], allI = [];
+  resCycles.forEach((cycle, ci) => {
+    if (!resVisible[ci]) return;
+    cycle.forEach(d => {
+      const vDrop = d.ch0 - d.ch1;             // caída de tensión sobre el memristor, con signo
+      const I     = dacAt(d.t, resParams) * k; // I = K·Vctrl, con signo
+      allV.push(vDrop);
+      allI.push(I);
+    });
+  });
+  if (allV.length === 0) return;
+
+  const isLightMode = document.body.classList.contains('light');
+  let vmin = Math.min(...allV), vmax = Math.max(...allV);
+  let imin = Math.min(...allI), imax = Math.max(...allI);
+  if (vmax - vmin < 0.001) { vmax += 0.01; vmin -= 0.01; }
+  if (imax - imin < 1e-12) { imax += 1e-10; imin -= 1e-10; }
+
+  const toX = v => pad.l + ((v - vmin) / (vmax - vmin)) * cw;
+  const toY = i => pad.t + ch - ((i - imin) / (imax - imin)) * ch;
+
+  ctx.strokeStyle = isLightMode ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (ch / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cw, y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = isLightMode ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.3)';
+  ctx.lineWidth = 1;
+  if (imin < 0 && imax > 0) {
+    const y0 = toY(0);
+    ctx.beginPath(); ctx.moveTo(pad.l, y0); ctx.lineTo(pad.l + cw, y0); ctx.stroke();
+  }
+  if (vmin < 0 && vmax > 0) {
+    const x0 = toX(0);
+    ctx.beginPath(); ctx.moveTo(x0, pad.t); ctx.lineTo(x0, pad.t + ch); ctx.stroke();
+  }
+
+  ctx.fillStyle = isLightMode ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.3)';
+  ctx.font = '9px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const val = imax - ((imax - imin) / 4) * i;
+    const y   = pad.t + (ch / 4) * i;
+    ctx.fillText(currentStr(val / (k || 1)), pad.l - 4, y + 3);
+  }
+
+  ctx.textAlign = 'left';
+  ctx.fillText(vmin.toFixed(2) + 'V', pad.l, pad.t + ch + 13);
+  ctx.textAlign = 'right';
+  ctx.fillText(vmax.toFixed(2) + 'V', pad.l + cw, pad.t + ch + 13);
+
+  const palette = ['#60a5fa','#f59e0b','#f43f5e','#4ade80','#a78bfa','#22d3ee','#fb923c','#e879f9'];
+  const pts = [];
+  resCycles.forEach((cycle, ci) => {
+    if (!resVisible[ci]) return;
+    ctx.fillStyle = palette[ci % palette.length];
+    ctx.shadowColor = palette[ci % palette.length];
+    ctx.shadowBlur = 3;
+    cycle.forEach(d => {
+      const vDrop = d.ch0 - d.ch1;             // con signo, igual que arriba
+      const I     = dacAt(d.t, resParams) * k; // con signo, igual que arriba
+      const x = toX(vDrop);
+      const y = toY(I);
+      ctx.beginPath();
+      ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      pts.push({ x, y, color: palette[ci % palette.length],
+        label: 'Ciclo ' + (ci+1) + ' · ΔV = ' + vDrop.toFixed(3) + ' V · I = ' + currentStr(dacAt(d.t, resParams)) });
+    });
+    ctx.shadowBlur = 0;
+  });
+  hoverPts['cv-iv'] = pts;
+}
+
+const hoverPts = {};
+const HOVER_RADIUS = 14;  // px: distancia máxima ratón-punto para mostrar el tooltip
+
+const tipEl  = document.createElement('div'); tipEl.className  = 'cv-tip';
+const ringEl = document.createElement('div'); ringEl.className = 'cv-ring';
+document.body.appendChild(tipEl);
+document.body.appendChild(ringEl);
+
+// oculta la etiqueta flotante
+function hideTip(){
+  tipEl.style.display  = 'none';
+  ringEl.style.display = 'none';
+}
+
+// activa la etiqueta flotante sobre una grafica
+function attachHover(id){
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  canvas.addEventListener('mousemove', e => {
+    const pts = hoverPts[id];
+    if (!pts || pts.length === 0){ hideTip(); return; }
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    let best = null, bestD2 = HOVER_RADIUS * HOVER_RADIUS;
+    for (const p of pts){
+      const dx = p.x - mx, dy = p.y - my;
+      const d2 = dx*dx + dy*dy;
+      if (d2 < bestD2){ bestD2 = d2; best = p; }
+    }
+    if (!best){ hideTip(); return; }
+
+    tipEl.textContent = best.label;
+    tipEl.style.display = 'block';
+    const px = rect.left + best.x;
+    const py = rect.top  + best.y;
+    let tx = px + 12, ty = py - tipEl.offsetHeight - 10;
+    if (tx + tipEl.offsetWidth > window.innerWidth - 8) tx = px - tipEl.offsetWidth - 12;
+    if (ty < 8) ty = py + 14;
+    tipEl.style.left = tx + 'px';
+    tipEl.style.top  = ty + 'px';
+
+    ringEl.style.display = 'block';
+    ringEl.style.left = px + 'px';
+    ringEl.style.top  = py + 'px';
+    ringEl.style.borderColor = best.color || '#fff';
+  });
+  canvas.addEventListener('mouseleave', hideTip);
+}
+
+['thd-canvas','scope-canvas','cv-iv','cv-ch0','cv-ch1'].forEach(attachHover);
+
+// cambia el indicador de conexion
+function setStatus(state, msg){
+  const dot = document.getElementById('dot');
+  dot.className = 'dot' + (state?' '+state:'');
+  document.getElementById('stxt').innerHTML = msg || 'Desconectado';
+}
+
+// escribe una linea en la consola
+function addLog(msg,type='info'){
+  const log = document.getElementById('log');
+  const now = new Date();
+  const t = [now.getHours(),now.getMinutes(),now.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+  const el = document.createElement('div');
+  el.className='log-line';
+  el.innerHTML=`<span class="log-t">${t}</span><span class="log-m ${type}">${msg}</span>`;
+  log.appendChild(el);
+  log.scrollTop=log.scrollHeight;
+}
+
+// vacia la consola
+function clearLog(){ document.getElementById('log').innerHTML=''; }
+
+// copia la consola al portapapeles
+function copyLog(){
+  const text=Array.from(document.querySelectorAll('.log-line')).map(l=>l.textContent).join('\n');
+  navigator.clipboard.writeText(text).then(()=>addLog('Log copiado','info'));
+}
+
+window.addEventListener('resize', () => { if(resCycles.length>0) redrawAll(); });
+if(!('serial' in navigator)){
+  document.getElementById('warn').style.display='block';
+  addLog('Web Serial API no soportada en este navegador — usa Chrome o Edge','err');
+} else {
+  addLog('Listo. Conecta el Arduino por USB y pulsa Conectar.','info');
+}
+clampSinRanges('amp');
+loadKCfg();
+loadKCalR();
+refreshKUI();
+startAnim();
+upd();
+</script>
+</body>
+</html>
