@@ -113,7 +113,83 @@ converts them to volts before sending them.
    measurement.
 
 No server or installation is needed; the page works when opened directly
-from disk.
+from disk. On Linux, check the [Linux setup](#linux-setup) section first.
+
+## Linux setup
+
+The web interface works on Linux, but the computer needs a few things set
+up before the browser can open the Arduino's serial port. Go through these
+in order.
+
+1. **Serial port permission.** Only members of the `dialout` group can
+   open serial ports. Check with `groups`. If `dialout` is not listed, run
+   the following, then log out and back in (or reboot):
+
+   ```
+   sudo usermod -aG dialout $USER
+   ```
+
+   Without this, Chrome shows an error such as "Failed to open serial
+   port" after you pick the port.
+
+2. **The browser.** Use Google Chrome, Chromium or Microsoft Edge; Firefox
+   does not support Web Serial. Browsers installed as Snap packages (such
+   as Ubuntu's default Chromium) usually cannot access serial ports: the
+   port list stays empty or opening fails. Install Google Chrome from its
+   official `.deb` package instead.
+
+3. **ModemManager.** It probes new `/dev/ttyACM*` devices as if they were
+   modems, which can block the port for a few seconds or send stray bytes
+   to the Arduino. If the computer does not use a mobile modem, disable it:
+
+   ```
+   sudo systemctl disable --now ModemManager
+   ```
+
+4. **brltty (clone boards only).** Some clone Megas use a CH340 USB-serial
+   chip and appear as `/dev/ttyUSB0` instead of `/dev/ttyACM0`. On recent
+   Ubuntu versions, the `brltty` braille service grabs these chips and the
+   port disappears right after plugging the board in. If no braille
+   display is used, remove it and replug the board:
+
+   ```
+   sudo apt remove brltty
+   ```
+
+5. **Port already in use.** Only one program can open the port at a time.
+   Close the Arduino IDE's Serial Monitor, or any other serial terminal,
+   before pressing **Connect**.
+
+### Diagnosing a connection problem
+
+How the page fails tells you where to look:
+
+- **The port list is empty:** the browser (item 2) or brltty (item 4).
+- **The port is listed but opening fails:** permissions (item 1) or
+  another program holding the port (items 3 and 5).
+- **It connects but no data arrives:** the board is not running this
+  project's firmware, or it is not an Arduino Mega 2560.
+
+With the board plugged in, this script prints everything needed to tell
+these cases apart:
+
+```bash
+echo "groups: $(id -nG)"; ls -l /dev/ttyACM* /dev/ttyUSB* 2>&1
+for b in google-chrome chromium chromium-browser microsoft-edge; do p=$(command -v $b) && echo "$b -> $(readlink -f $p)"; done
+snap list 2>/dev/null | grep -iE "chrom|edge"
+systemctl is-active ModemManager brltty 2>&1
+lsusb | grep -iE "2341|2a03|1a86|0403|10c4"
+sudo fuser -v /dev/ttyACM* /dev/ttyUSB* 2>&1
+```
+
+What to look for in its output:
+
+- `dialout` is in the groups;
+- the port exists and belongs to the `dialout` group;
+- the browser path is not under `/snap`;
+- ModemManager and brltty are `inactive`;
+- the board appears in `lsusb` (`2341:0042` is an Arduino Mega 2560 R3);
+- no other process holds the port.
 
 ## Web interface features
 
