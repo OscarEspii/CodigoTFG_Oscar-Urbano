@@ -186,22 +186,37 @@ void dacWrite(float volts) {
 // Para guardar X dato en su variable correspondiente.
 // (La verdad es que no tenia ni idea de que se llamaba asi, gracias Rodrigo supongo)
 // ═══════════════════════════════════════════════════════════════
+// findKey() devuelve un puntero al valor de la clave, o NULL si no está.
+// Solo vale si la clave es un campo entero: tiene que estar al principio de
+// la trama o justo después de una coma, y seguida de ':'. Antes se buscaba
+// "F:" a secas con strstr(), y eso también casaba dentro de "OFF:", así que
+// si el OFF iba antes que el F se leía el offset como frecuencia.
+const char* findKey(const char* frame, const char* key) {
+  size_t n = strlen(key);
+  const char* p = frame;
+  while ((p = strstr(p, key)) != NULL) {
+    if ((p == frame || p[-1] == ',') && p[n] == ':') return p + n + 1;
+    p++;
+  }
+  return NULL;
+}
+
 #define PARSE_FLOAT(frame, key, var) \
   { \
-    const char* p = strstr(frame, key ":"); \
-    if (p) var = atof(p + strlen(key) + 1); \
+    const char* p = findKey(frame, key); \
+    if (p) var = atof(p); \
   }
 
 #define PARSE_LONG(frame, key, var) \
   { \
-    const char* p = strstr(frame, key ":"); \
-    if (p) sscanf(p, key ":%ld", &var); \
+    const char* p = findKey(frame, key); \
+    if (p) sscanf(p, "%ld", &var); \
   }
 
 #define PARSE_STR(frame, key, var) \
   { \
-    const char* p = strstr(frame, key ":"); \
-    if (p) sscanf(p, key ":%2s", var); \
+    const char* p = findKey(frame, key); \
+    if (p) sscanf(p, "%2s", var); \
   }
 
 long memVal = 0;
