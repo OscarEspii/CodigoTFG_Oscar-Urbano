@@ -378,6 +378,8 @@ line ends with `END`. Each group has three comma-separated values:
   while the current is reversed.
 - There are at most 512 samples per line, so the line can be about 14 KB
   long.
+- In `SIN`, `TRI` and `PUL`, each cycle has `NPTS` samples: the first at
+  the start of the cycle (phase 0), then one every period / `NPTS`.
 - In `OLD` there is one sample per pulse.
 - With fast signals there may be fewer samples per cycle than `NPTS`,
   because the firmware loop takes about 350 µs. The `t` values are always

@@ -977,7 +977,8 @@ body.light .toggle-track::after{background:#fffdf8}
         ch0 and ch1 come from a 12-bit reading (0 … 4095 counts) converted as counts × 5 / 4095,
         so one count is about 1.22 mV and the range is −5 … +5 V. They are negative while the
         requested voltage is negative (reversed current). There are at most 512 samples per
-        line; in OLD, one per pulse.
+        line. In SIN, TRI and PUL each cycle has NPTS samples, the first at the start of the cycle
+        (phase 0) and then one every period / NPTS; in OLD, one per pulse.
       </div>
     </div>
 

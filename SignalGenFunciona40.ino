@@ -454,8 +454,18 @@ void readSerial() {
 //  Writing on every iteration but not sampling on every one is what allows
 //  higher frequencies without spoiling the waveform. Even if samples are
 //  lost, the signal the chip sees is still the right one.
+//
+//  Samples are taken at the START of each DTMax slot of the period
+//  (t = 0, T/N, 2T/N... with DT preloaded to DTMax in runOnePeriod()), and
+//  the grid restarts with every period, so each period gets exactly N
+//  samples (if the loop is fast enough) and its first one is at phase 0,
+//  which is what the web app assumes when it splits the cycles. Taking them
+//  at the end of each slot put the last one on the period boundary, where
+//  the loop may already have stopped: PUL lost the last sample of the
+//  signal and shifted every cycle by one sample.
 // ═══════════════════════════════════════════════════════════════
 unsigned long DT = 0;
+int periodSamples = 0;   // samples taken so far in the current period
 unsigned long now;
 unsigned long dt;
 float outVolts;
@@ -549,9 +559,10 @@ void generateAndSample() {
   // DTMax / 350 us times too slow.
   if (sigType != 'O') {
     DT += dt;
-    if (DT >= DTMax) {
+    if (DT >= DTMax && periodSamples < n_points) {
       storeSample(outVolts, now - lastSampleUs);
       lastSampleUs = now;
+      periodSamples++;
       DT -= DTMax;
     }
   }
@@ -679,6 +690,8 @@ void runOnePeriod() {
   lastMicros = signalStart;
   phaseAccum = 0.0;
   tInPeriod = 0;
+  DT = DTMax;          // first sample of the period right at its start
+  periodSamples = 0;
 
   if (sigType == 'S' || sigType == 'T') {
     while (phaseAccum < 1.0) {
@@ -758,7 +771,6 @@ void loop() {
   } else {
     digitalWrite(PIN_EC, HIGH);
     lastSampleUs = micros();  // time origin of the signal
-    DT = 0;                   // don't carry the previous signal's leftover
   }
   for (int c = 0; c < n_cycles; c++) {
     runOnePeriod();
