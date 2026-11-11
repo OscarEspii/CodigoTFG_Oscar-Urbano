@@ -199,53 +199,263 @@ What to look for in its output:
 
 ## Web interface features
 
-- **Signal tabs:** Sinusoidal, Triangular, Pulsos (voltage pulses) and
-  Pulsos EC (OLD mode, where the EC pin itself is pulsed and the DAC stays
-  at 0 V).
-- **Config:** memristor selection, current direction, current mirror range
-  and the K calibration of each range. To calibrate, replace the device
-  under test with a known resistor and press **Calibrar**. The calibration
-  is stored in the browser.
+- **Signal tabs:** Sine, Triangle, Pulses (voltage pulses) and EC Pulses
+  (`OLD` mode, where the EC pin itself is pulsed and the DAC stays at 0 V).
+- **Config:** memristor selection, current mirror range and the K
+  calibration of each range. To calibrate, replace the device under test
+  with a known resistor and press **Calibrate**. The calibration is stored
+  in the browser.
+- **Commands:** a reference of every frame the Arduino accepts, its
+  replies, the `DATA` format and the console commands. Each example has a
+  **Use** button that copies it to the console. See [Commands](#commands).
 - **Results:** plots of the acquired channels per cycle, and export to
   `.xlsx`.
 - **Console:** sends raw frames such as `TYPE:SIN,F:100,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:1,NPTS:170`
-  directly to the Arduino. Other commands: `help`, `status`, `clear`,
-  `light`, `dark`, `play`, `pause`.
+  directly to the Arduino, plus a few commands handled by the page (see
+  [Web console commands](#web-console-commands)).
 - **Debug tab:** hidden by default; type `debug` in the console to show
   it. It contains a live oscilloscope of CH0 and a THD-vs-frequency sweep
   (5 Hz to 5 kHz).
 
-## Serial protocol
+## Commands
 
-The protocol is fully documented in the header of `SignalGenFunciona40.ino`.
-In short:
+The web page is only a front end. Everything it does, it does by sending
+the text frames below over the serial port and reading the replies. The
+bench can be driven the same way from a serial terminal, MATLAB, Python or
+any other program that can open a serial port (see
+[Using the bench without the web page](#using-the-bench-without-the-web-page)).
+The **Commands** tab in the web page shows the same reference.
 
-- There is no separate start command. Each frame is one text line ending
-  in `\n`, and the frame itself starts a one-shot measurement:
+### Serial settings
 
-  ```
-  TYPE:SIN,F:10.00,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:3,NPTS:170
-  TYPE:TRI,F:10.00,VMAX:1.00,VMIN:-1.00,MEM:0,INT:11,NCYC:3,NPTS:170
-  TYPE:PUL,VHI:1.00,VLO:0.00,DUR:500,PER:10,MEM:0,INT:11,NCYC:3,NPTS:170
-  TYPE:OLD,T1:2000,T2:10,MEM:0,INT:11,NCYC:10,NPTS:170
-  ```
+| Setting | Value |
+| --- | --- |
+| Baud rate | 2,000,000 |
+| Format | 8 data bits, no parity, 1 stop bit (8N1), no flow control |
+| Encoding | Plain ASCII text |
+| Frames sent to the Arduino | One per line, ending in `\n` (LF). A `\r` before it is ignored. 127 characters at most; anything longer is cut off. |
+| Replies from the Arduino | One per line, ending in `\r\n` (CR LF) |
 
-- Fields can be given in any order. A missing field keeps its value from
-  the previous frame.
-- Units: frequencies in Hz, voltages in V, `DUR` and `T1` in µs, `PER` and
-  `T2` in ms.
-- The Arduino replies with optional `WARN:...` lines, then `OK:<TYPE>` (or
-  `ERR:UNKNOWN_TYPE`). When all cycles are done, it sends every sample in
-  one line:
+Opening the port resets the Arduino (as with any Arduino Mega). It sends
+`OK:READY` about 2 seconds later, when it is ready to receive frames.
 
-  ```
-  DATA:t0,ch0,ch1;t1,ch0,ch1;...;END
-  ```
+### How a measurement works
 
-  `t` is in µs from the start of the signal, and `ch0` and `ch1` are in
-  volts, signed.
-- The buffer holds 512 samples, so `NCYC × NPTS` must not exceed 512.
-  Otherwise `NPTS` is reduced and a warning is sent.
+1. Send one `TYPE:` frame. There is no separate start command: the frame
+   itself starts the measurement.
+2. The Arduino replies with zero or more `WARN:` lines, then `OK:<TYPE>`,
+   and starts generating the signal straight away. If the type is not
+   recognised it replies `ERR:UNKNOWN_TYPE` and measures nothing.
+3. It generates `NCYC` cycles back to back, sampling both ADC channels as
+   it goes. It does not read the serial port during this time, so do not
+   send anything until step 4.
+4. It sends all the samples in a single `DATA:` line ending in `END`, then
+   waits for the next frame.
+
+### Frame format
+
+```
+TYPE:SIN,F:10.00,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:3,NPTS:170
+```
+
+- `KEY:value` fields separated by commas, with no spaces. Fields can go in
+  any order.
+- A field that is left out keeps its value from the previous frame.
+- Decimal numbers use a point (`0.50`), not a comma.
+- Value types, as the firmware reads them:
+  - **float**: a 32-bit decimal number (`-0.5`, `10`, `10.00`);
+  - **integer**: a 32-bit signed whole number (`500`);
+  - **text**: letters or digits.
+
+#### Fields common to all signals
+
+| Field | Type | Unit | Valid values | Meaning |
+| --- | --- | --- | --- | --- |
+| `TYPE` | text | — | `SIN`, `TRI`, `PUL`, `OLD` | Signal type. Only the first letter is checked. |
+| `MEM` | integer | — | `0` or `1` | Memristor: `0` = memristor 1 (SM1 low), `1` = memristor 2 (SM1 high). |
+| `INT` | text, 2 digits | — | `00`, `01`, `10`, `11` | Current mirror range. First digit M0, second M1: `00` = ×1/8, `01` = ×1/4, `10` = ×1/2, `11` = ×1. |
+| `NCYC` | integer | cycles | ≥ 1 | Number of cycles. In `OLD`, the number of pulses (max. 512). |
+| `NPTS` | integer | samples per cycle | 1 to 512 / `NCYC` | Samples per cycle. If `NCYC × NPTS` > 512, `NPTS` is reduced. Not used in `OLD`, but send it anyway. |
+
+`MEM` and `INT` are applied as soon as the frame is read, even if `TYPE`
+turns out to be unknown.
+
+#### `SIN`: sine
+
+| Field | Type | Unit | Valid values | Meaning |
+| --- | --- | --- | --- | --- |
+| `F` | float | Hz | ≥ 1 | Frequency. Below 1 Hz, 1 Hz is used. The sign is ignored. |
+| `AMP` | float | V | \|`OFF`\| + `AMP` ≤ 1 | Peak amplitude. |
+| `OFF` | float | V | −1 to 1 | Offset. The output is `OFF + AMP · sin(2π · F · t)`. |
+
+```
+TYPE:SIN,F:10.00,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:3,NPTS:170
+```
+
+#### `TRI`: triangle
+
+| Field | Type | Unit | Valid values | Meaning |
+| --- | --- | --- | --- | --- |
+| `F` | float | Hz | ≥ 1 | Frequency. Below 1 Hz, 1 Hz is used. |
+| `VMAX` | float | V | −1 to 1 | Maximum voltage, reached at half period. |
+| `VMIN` | float | V | −1 to 1 | Minimum voltage, at the start and end of each period. |
+
+```
+TYPE:TRI,F:10.00,VMAX:0.50,VMIN:-0.50,MEM:0,INT:11,NCYC:3,NPTS:170
+```
+
+#### `PUL`: voltage pulses
+
+| Field | Type | Unit | Valid values | Meaning |
+| --- | --- | --- | --- | --- |
+| `VHI` | float | V | −1 to 1 | Pulse voltage, during the first `DUR` µs of each period. |
+| `VLO` | float | V | −1 to 1 | Rest voltage, for the rest of the period. |
+| `DUR` | integer | µs | ≥ 1 | Pulse duration. |
+| `PER` | integer | ms | ≥ 1 | Period. Note the unit: milliseconds, while `DUR` is in microseconds. |
+
+```
+TYPE:PUL,VHI:0.50,VLO:0.00,DUR:5000,PER:10,MEM:0,INT:11,NCYC:3,NPTS:170
+```
+
+#### `OLD`: EC pulses
+
+The DAC stays at 0 V and the TK042's EC pin itself is switched on and off
+to make the pulses. One sample is taken per pulse, at the falling edge of
+EC.
+
+| Field | Type | Unit | Valid values | Meaning |
+| --- | --- | --- | --- | --- |
+| `T1` | integer | µs | 1 to `T2` | Time EC stays high in each period. Below about 2000 µs the real pulse is noticeably shorter than requested, because the firmware loop takes about 350 µs. |
+| `T2` | integer | ms | ≥ 1 | Period. |
+
+```
+TYPE:OLD,T1:5000,T2:10,MEM:0,INT:11,NCYC:10,NPTS:170
+```
+
+All output voltages are clipped to ±1 V by the firmware, whatever the
+frame asks for, to protect the TK042's control input.
+
+### Replies
+
+| Reply | When it is sent |
+| --- | --- |
+| `OK:READY` | At power-up or reset, including when the port is opened. |
+| `WARN:NPTS_CLIPPED_TO_MAX` | `NCYC × NPTS` > 512, so `NPTS` was reduced. In `OLD`, `NCYC` > 512 and `NCYC` was reduced. |
+| `WARN:FREQ_CLIPPED_TO_MIN` | `F` < 1 Hz in `SIN` or `TRI`; 1 Hz is used. |
+| `WARN:VOLTAGE_CLIP_1V` | The requested signal goes beyond ±1 V; its peaks will be clipped. |
+| `OK:SIN`, `OK:TRI`, `OK:PUL`, `OK:OLD` | The frame was accepted and the measurement starts now. Any warnings come before this line. |
+| `ERR:UNKNOWN_TYPE` | `TYPE` was not recognised. Nothing is measured. |
+| `DATA:...;END` | The results, once all cycles are done. |
+
+The `WARN:` lines are only warnings: the measurement still runs.
+
+### The `DATA` line
+
+```
+DATA:t,ch0,ch1;t,ch0,ch1;...;END
+```
+
+For example:
+
+```
+DATA:1012,0.1245,0.0610;2004,0.2490,0.1221;...;END
+```
+
+`DATA:` is followed by one group per sample, each ending in `;`, and the
+line ends with `END`. Each group has three comma-separated values:
+
+| Value | Type | Unit | Meaning |
+| --- | --- | --- | --- |
+| `t` | unsigned 32-bit integer, decimal | µs | Time since the start of the signal, counted across all cycles. |
+| `ch0` | decimal number, 4 decimals | V | MCP3304 channel 0: node V01 of the TK042. |
+| `ch1` | decimal number, 4 decimals | V | MCP3304 channel 1: node V02 of the TK042. |
+
+- `ch0` and `ch1` come from 12-bit ADC readings (0 to 4095 counts),
+  converted as `counts × 5 / 4095`. One count is about 1.22 mV, and the
+  range is −5 to +5 V.
+- They are negative while the requested voltage is negative, that is,
+  while the current is reversed.
+- There are at most 512 samples per line, so the line can be about 14 KB
+  long.
+- In `OLD` there is one sample per pulse.
+- With fast signals there may be fewer samples per cycle than `NPTS`,
+  because the firmware loop takes about 350 µs. The `t` values are always
+  the real sample times.
+- The Arduino sends all cycles together. To split them, use the number of
+  samples per cycle, or the signal period and `t`.
+
+### Using the bench without the web page
+
+Any program that follows the steps above can run measurements.
+
+**Serial terminal.** With `picocom` on Linux:
+
+```
+picocom -b 2000000 --omap crlf --echo /dev/ttyACM0
+```
+
+`--omap crlf` makes the Enter key send the `\n` the firmware expects, and
+`--echo` shows what you type. Type a frame and press Enter. To exit, press
+Ctrl-A then Ctrl-X. In the Arduino IDE's Serial Monitor, set the speed to
+2000000 baud and the line ending to "Newline".
+
+**MATLAB** (R2019b or later):
+
+```matlab
+s = serialport("/dev/ttyACM0", 2000000);   % "COM3" or similar on Windows
+configureTerminator(s, "CR/LF", "LF");     % replies end in \r\n, frames in \n
+s.Timeout = 30;                            % seconds, longer than the slowest measurement
+pause(2);                                  % opening the port resets the Arduino
+disp(readline(s))                          % OK:READY
+
+writeline(s, "TYPE:SIN,F:10,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:2,NPTS:50");
+line = readline(s);
+while ~startsWith(line, "DATA:")
+    disp(line)                             % WARN:... lines and OK:SIN
+    line = readline(s);
+end
+body = extractBetween(line, "DATA:", ";END");
+vals = str2double(split(split(body, ";"), ","));   % N x 3 matrix
+t_us = vals(:,1); ch0 = vals(:,2); ch1 = vals(:,3);
+plot(t_us/1000, ch0, t_us/1000, ch1);
+xlabel("t (ms)"); ylabel("V"); legend("CH0 (V01)", "CH1 (V02)");
+```
+
+**Python** (with `pyserial`):
+
+```python
+import serial, time
+
+s = serial.Serial("/dev/ttyACM0", 2000000, timeout=30)   # "COM3" or similar on Windows
+time.sleep(2)                                            # opening the port resets the Arduino
+print(s.readline().decode().strip())                     # OK:READY
+
+s.write(b"TYPE:SIN,F:10,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:2,NPTS:50\n")
+while True:
+    line = s.readline().decode().strip()
+    if line.startswith("DATA:"):
+        break
+    print(line)                                          # WARN:... lines and OK:SIN
+
+samples = [tuple(map(float, p.split(","))) for p in line[5:].split(";") if p and p != "END"]
+# samples = [(t_us, ch0_V, ch1_V), ...]
+```
+
+### Web console commands
+
+The console under the log in the web page also accepts these commands.
+The page handles them itself; they are not sent to the Arduino. Any line
+starting with `TYPE:` is sent to the Arduino as it is, with decimal commas
+(`0,5`) changed to points.
+
+| Command | What it does |
+| --- | --- |
+| `help` | Lists the console commands. |
+| `status` | Shows whether the page is connected. |
+| `clear` | Clears the log. |
+| `light`, `dark` | Switches between light and dark mode. |
+| `play`, `pause` | Starts or stops the signal preview animation. |
+| `debug` | Shows the hidden Debug tab (oscilloscope and THD sweep). |
 
 ## Test mode
 

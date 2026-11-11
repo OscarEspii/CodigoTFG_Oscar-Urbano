@@ -180,6 +180,27 @@ body.light .btn-export-green{color:#0a0a0a}
 .tab.dbg.active .tab-name{color:#38bdf8}
 .tab.dbg .tab-indicator{background:#38bdf8}
 
+/* COMMANDS TAB (reference of everything that can be sent) */
+:root{--cmd:#94a3b8}
+body.light{--cmd:#475569}
+.tab.cmd.active{border-color:var(--cmd);background:rgba(148,163,184,0.12)}
+.tab.cmd.active .tab-name{color:var(--cmd)}
+.tab.cmd .tab-indicator{background:var(--cmd)}
+.cmd-text{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:12px}
+.cmd-text b{color:var(--text);font-weight:500}
+.cmd-text code,.cmd-table code{font-family:var(--mono);color:var(--cmd);white-space:nowrap}
+.cmd-type{font-family:var(--display);font-size:22px;letter-spacing:.04em;color:var(--text);margin:18px 0 6px}
+.cmd-type:first-child{margin-top:0}
+.cmd-scroll{overflow-x:auto;margin-bottom:10px}
+.cmd-table{width:100%;border-collapse:collapse;font-size:12px}
+.cmd-table th{text-align:left;font-weight:500;color:var(--muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.07em;padding:6px 8px;border-bottom:1px solid var(--border2);white-space:nowrap}
+.cmd-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text);line-height:1.5}
+.cmd-ex{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 10px;margin:4px 0 6px}
+.cmd-ex code{flex:1;font-family:var(--mono);font-size:12.5px;color:var(--cmd);word-break:break-all}
+.cmd-use{flex-shrink:0;font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text);cursor:pointer;transition:all .15s}
+.cmd-use:hover{border-color:var(--cmd);color:var(--cmd)}
+body.light .cmd-ex{background:#fffdf8}
+
 /* CONFIG PANEL */
 .cfg-panel{background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px;display:none}
 .cfg-section{padding:18px;border-bottom:1px solid var(--border)}
@@ -455,7 +476,7 @@ body.light .toggle-track::after{background:#fffdf8}
   </div>
 
   <!-- TOOLBAR -->
-  <div class="toolbar" style="grid-template-columns:repeat(5,1fr)">
+  <div class="toolbar" style="grid-template-columns:repeat(6,1fr)">
     <div class="tab sin active" onclick="setTab('sin')">
       <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M0 18 C15 18 15 4 30 4 C45 4 45 32 60 32 C75 32 75 4 90 4 C105 4 105 32 120 32" stroke="#00e5b0" stroke-width="2" fill="none"/>
@@ -502,6 +523,16 @@ body.light .toggle-track::after{background:#fffdf8}
       </svg>
       <div class="tab-name">Config</div>
       <div class="tab-sub">Memristor · Dir · Web</div>
+      <div class="tab-indicator"></div>
+    </div>
+    <div class="tab cmd" onclick="setTab('cmd')">
+      <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="38" y="5" width="44" height="26" rx="3" stroke="#94a3b8" stroke-width="2"/>
+        <polyline points="45,13 51,18 45,23" stroke="#94a3b8" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="55" y1="24" x2="68" y2="24" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <div class="tab-name">Commands</div>
+      <div class="tab-sub">Frames · Replies</div>
       <div class="tab-indicator"></div>
     </div>
     <div class="tab dbg" id="tab-dbg" onclick="setTab('dbg')" style="display:none">
@@ -832,6 +863,136 @@ body.light .toggle-track::after{background:#fffdf8}
       </label>
     </div>
 
+  </div>
+
+  <!-- COMMANDS PANEL: reference of everything that can be sent. Keep it in
+       sync with the firmware header and the README's "Commands" section. -->
+  <div class="cfg-panel" id="cmd-panel" style="display:none">
+    <div class="cfg-big-title">Commands</div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">How it works</div>
+      <div class="cmd-text">
+        This page is only a <b>front end</b>. Everything it does is sending the text frames
+        listed below over the serial port and reading the replies, so the bench can also be
+        driven from a serial terminal, MATLAB, Python or any other program that can open a
+        serial port (see the README for examples).
+      </div>
+      <div class="cmd-text">
+        <b>Serial settings:</b> 2,000,000 baud, 8 data bits, no parity, 1 stop bit (8N1).
+        Everything is plain ASCII text. Each frame is one line ending in <code>\n</code>
+        (a <code>\r</code> before it is ignored), at most 127 characters.
+        The Arduino's replies end in <code>\r\n</code>.
+      </div>
+      <div class="cmd-text">
+        <b>There is no separate start command:</b> each <code>TYPE:</code> frame starts one
+        measurement as soon as it arrives. The Arduino runs NCYC cycles, sends all the samples
+        in one <code>DATA:</code> line, and waits for the next frame. It does not read the port
+        while measuring, so wait for <code>END</code> before sending anything else.
+        Opening the port resets the Arduino, which answers <code>OK:READY</code> about
+        2 seconds later.
+      </div>
+      <div class="cmd-text">
+        <b>Frame format:</b> <code>KEY:value</code> fields separated by commas, in any order.
+        A field left out keeps its value from the previous frame. Decimal numbers use a point
+        (<code>0.50</code>). Types below: <b>float</b> = 32-bit decimal number,
+        <b>integer</b> = 32-bit signed whole number, <b>text</b> = letters or digits.
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">Frames sent to the Arduino</div>
+
+      <div class="cmd-type">Fields common to all signals</div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Field</th><th>Type</th><th>Unit</th><th>Range</th><th>Meaning</th></tr>
+        <tr><td><code>TYPE</code></td><td>text</td><td>—</td><td><code>SIN</code> <code>TRI</code> <code>PUL</code> <code>OLD</code></td><td>Signal type. Only the first letter is checked.</td></tr>
+        <tr><td><code>MEM</code></td><td>integer</td><td>—</td><td>0 or 1</td><td>Memristor: 0 = memristor 1 (SM1 low), 1 = memristor 2 (SM1 high).</td></tr>
+        <tr><td><code>INT</code></td><td>text, 2 digits</td><td>—</td><td><code>00</code> <code>01</code> <code>10</code> <code>11</code></td><td>Current mirror range, digits M0 M1: 00 = ×1/8, 01 = ×1/4, 10 = ×1/2, 11 = ×1.</td></tr>
+        <tr><td><code>NCYC</code></td><td>integer</td><td>cycles</td><td>≥ 1</td><td>Number of cycles. In OLD, number of pulses (max. 512).</td></tr>
+        <tr><td><code>NPTS</code></td><td>integer</td><td>samples/cycle</td><td>1 … 512 / NCYC</td><td>Samples per cycle. If NCYC × NPTS &gt; 512, NPTS is reduced. Ignored in OLD.</td></tr>
+      </table></div>
+
+      <div class="cmd-type">SIN · sine</div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Field</th><th>Type</th><th>Unit</th><th>Range</th><th>Meaning</th></tr>
+        <tr><td><code>F</code></td><td>float</td><td>Hz</td><td>≥ 1</td><td>Frequency. Below 1 Hz, 1 Hz is used. The sign is ignored.</td></tr>
+        <tr><td><code>AMP</code></td><td>float</td><td>V</td><td>|OFF| + AMP ≤ 1</td><td>Peak amplitude.</td></tr>
+        <tr><td><code>OFF</code></td><td>float</td><td>V</td><td>−1 … 1</td><td>Offset. Output = OFF + AMP·sin(2π·F·t).</td></tr>
+      </table></div>
+      <div class="cmd-ex"><code>TYPE:SIN,F:10.00,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:3,NPTS:170</code><button class="cmd-use" onclick="useCommand(this)">Use</button></div>
+
+      <div class="cmd-type">TRI · triangle</div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Field</th><th>Type</th><th>Unit</th><th>Range</th><th>Meaning</th></tr>
+        <tr><td><code>F</code></td><td>float</td><td>Hz</td><td>≥ 1</td><td>Frequency. Below 1 Hz, 1 Hz is used.</td></tr>
+        <tr><td><code>VMAX</code></td><td>float</td><td>V</td><td>−1 … 1</td><td>Maximum voltage, reached at half period.</td></tr>
+        <tr><td><code>VMIN</code></td><td>float</td><td>V</td><td>−1 … 1</td><td>Minimum voltage, at the start and end of each period.</td></tr>
+      </table></div>
+      <div class="cmd-ex"><code>TYPE:TRI,F:10.00,VMAX:0.50,VMIN:-0.50,MEM:0,INT:11,NCYC:3,NPTS:170</code><button class="cmd-use" onclick="useCommand(this)">Use</button></div>
+
+      <div class="cmd-type">PUL · voltage pulses</div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Field</th><th>Type</th><th>Unit</th><th>Range</th><th>Meaning</th></tr>
+        <tr><td><code>VHI</code></td><td>float</td><td>V</td><td>−1 … 1</td><td>Pulse voltage (first DUR µs of each period).</td></tr>
+        <tr><td><code>VLO</code></td><td>float</td><td>V</td><td>−1 … 1</td><td>Rest voltage (the rest of the period).</td></tr>
+        <tr><td><code>DUR</code></td><td>integer</td><td>µs</td><td>≥ 1</td><td>Pulse duration.</td></tr>
+        <tr><td><code>PER</code></td><td>integer</td><td>ms</td><td>≥ 1</td><td>Period.</td></tr>
+      </table></div>
+      <div class="cmd-ex"><code>TYPE:PUL,VHI:0.50,VLO:0.00,DUR:5000,PER:10,MEM:0,INT:11,NCYC:3,NPTS:170</code><button class="cmd-use" onclick="useCommand(this)">Use</button></div>
+
+      <div class="cmd-type">OLD · EC pulses</div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Field</th><th>Type</th><th>Unit</th><th>Range</th><th>Meaning</th></tr>
+        <tr><td><code>T1</code></td><td>integer</td><td>µs</td><td>1 … T2</td><td>Time EC stays high in each period. Below about 2000 µs the real pulse is noticeably shorter.</td></tr>
+        <tr><td><code>T2</code></td><td>integer</td><td>ms</td><td>≥ 1</td><td>Period.</td></tr>
+      </table></div>
+      <div class="cmd-text">The DAC stays at 0 V and the EC pin itself makes the pulses. One sample is taken per pulse, at the falling edge of EC.</div>
+      <div class="cmd-ex"><code>TYPE:OLD,T1:5000,T2:10,MEM:0,INT:11,NCYC:10,NPTS:170</code><button class="cmd-use" onclick="useCommand(this)">Use</button></div>
+    </div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">Replies from the Arduino</div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Reply</th><th>When</th></tr>
+        <tr><td><code>OK:READY</code></td><td>At power-up or reset (also when the port is opened).</td></tr>
+        <tr><td><code>WARN:NPTS_CLIPPED_TO_MAX</code></td><td>NCYC × NPTS &gt; 512: NPTS was reduced (in OLD, NCYC &gt; 512 and NCYC was reduced).</td></tr>
+        <tr><td><code>WARN:FREQ_CLIPPED_TO_MIN</code></td><td>F &lt; 1 Hz in SIN or TRI: 1 Hz is used.</td></tr>
+        <tr><td><code>WARN:VOLTAGE_CLIP_1V</code></td><td>The signal goes beyond ±1 V: its peaks will be clipped.</td></tr>
+        <tr><td><code>OK:SIN</code> <code>OK:TRI</code> <code>OK:PUL</code> <code>OK:OLD</code></td><td>Frame accepted: the measurement starts now. Warnings, if any, come before it.</td></tr>
+        <tr><td><code>ERR:UNKNOWN_TYPE</code></td><td>TYPE not recognised: nothing is measured (MEM and INT are still applied).</td></tr>
+        <tr><td><code>DATA:…;END</code></td><td>All the samples, once all the cycles are done (see below).</td></tr>
+      </table></div>
+
+      <div class="cmd-type">DATA line</div>
+      <div class="cmd-ex"><code>DATA:t,ch0,ch1;t,ch0,ch1;…;END</code></div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Value</th><th>Type</th><th>Unit</th><th>Meaning</th></tr>
+        <tr><td><code>t</code></td><td>unsigned 32-bit integer</td><td>µs</td><td>Time since the start of the signal, counted across all cycles.</td></tr>
+        <tr><td><code>ch0</code></td><td>decimal, 4 decimals</td><td>V</td><td>MCP3304 channel 0, node V01 of the TK042.</td></tr>
+        <tr><td><code>ch1</code></td><td>decimal, 4 decimals</td><td>V</td><td>MCP3304 channel 1, node V02 of the TK042.</td></tr>
+      </table></div>
+      <div class="cmd-text">
+        ch0 and ch1 come from a 12-bit reading (0 … 4095 counts) converted as counts × 5 / 4095,
+        so one count is about 1.22 mV and the range is −5 … +5 V. They are negative while the
+        requested voltage is negative (reversed current). There are at most 512 samples per
+        line; in OLD, one per pulse.
+      </div>
+    </div>
+
+    <div class="cfg-section">
+      <div class="cfg-section-title">Console commands (this page only)</div>
+      <div class="cmd-text">These are typed in the console below the log and are handled by the page; they are not sent to the Arduino. Any line starting with <code>TYPE:</code> is sent to the Arduino as it is (decimal commas such as <code>0,5</code> are changed to points).</div>
+      <div class="cmd-scroll"><table class="cmd-table">
+        <tr><th>Command</th><th>What it does</th></tr>
+        <tr><td><code>help</code></td><td>Lists the console commands.</td></tr>
+        <tr><td><code>status</code></td><td>Shows whether the page is connected.</td></tr>
+        <tr><td><code>clear</code></td><td>Clears the log.</td></tr>
+        <tr><td><code>light</code> / <code>dark</code></td><td>Switches between light and dark mode.</td></tr>
+        <tr><td><code>play</code> / <code>pause</code></td><td>Starts or stops the signal preview animation.</td></tr>
+        <tr><td><code>debug</code></td><td>Shows the Debug tab (oscilloscope and THD sweep).</td></tr>
+      </table></div>
+    </div>
   </div>
 
   <!-- DEBUG PANEL -->
@@ -1295,12 +1456,20 @@ function buildScopeSignalFrame(){
   }
 }
 
+// puts a command from the Commands tab into the console, ready to send with Enter
+function useCommand(btn){
+  const input = document.getElementById('console-input');
+  input.value = btn.parentElement.querySelector('code').textContent;
+  input.focus();
+  input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 // makes the debug tab visible
 function unlockDebugTab(){
   if (debugUnlocked) { addLog('Debug mode was already enabled', 'info'); return; }
   debugUnlocked = true;
   document.getElementById('tab-dbg').style.display = '';
-  document.querySelector('.toolbar').style.gridTemplateColumns = 'repeat(6,1fr)';
+  document.querySelector('.toolbar').style.gridTemplateColumns = 'repeat(7,1fr)';
   addLog('Debug mode enabled', 'ok');
 }
 let numCycles = 1;
@@ -1376,7 +1545,7 @@ function setTab(t) {
   if (t === 'sin' || t === 'tri' || t === 'pul' || t === 'old') lastSignalTab = t;
   if (t !== 'dbg' && scopePreviewActive) stopScopePreview();  // leaving Debug stops the oscilloscope
   if (t !== 'dbg' && thdSweepActive) stopThdSweep('stopped');  // leaving Debug stops the THD sweep
-  ['sin','tri','pul','old','cfg','dbg'].forEach(k => {
+  ['sin','tri','pul','old','cfg','cmd','dbg'].forEach(k => {
     document.querySelector('.tab.'+k).classList.toggle('active', k===t);
     const p = document.getElementById('params-'+k);
     if(p) p.style.display = k===t ? '' : 'none';
@@ -1384,11 +1553,14 @@ function setTab(t) {
 
   const isCfg = t === 'cfg';
   const isDbg = t === 'dbg';
+  const isCmd = t === 'cmd';
+  const noSignal = isCfg || isDbg || isCmd;   // tabs without the signal panel and send row
   document.getElementById('cfg-panel').style.display = isCfg ? 'block' : 'none';
   document.getElementById('web-panel').style.display  = isCfg ? 'block' : 'none';
   document.getElementById('debug-panel').style.display = isDbg ? 'block' : 'none';
-  document.getElementById('res-block-wrap').style.display = (isCfg || isDbg) ? 'none' : 'block';
-  document.querySelector('.panel').style.display      = (isCfg || isDbg) ? 'none'  : 'block';
+  document.getElementById('cmd-panel').style.display   = isCmd ? 'block' : 'none';
+  document.getElementById('res-block-wrap').style.display = noSignal ? 'none' : 'block';
+  document.querySelector('.panel').style.display      = noSignal ? 'none'  : 'block';
 
   updateOldLock();
   syncCountersForTab();   // "Cycles" becomes "No. of pulses" in the OLD panel
@@ -1396,8 +1568,8 @@ function setTab(t) {
   const names = {sin:'sine',tri:'triangle',pul:'pulse',old:'old pulse (EC)'};
   const btn     = document.getElementById('btn-send');
   const sendRow = document.getElementById('send-row');
-  sendRow.style.display = (isCfg || isDbg) ? 'none' : 'flex';
-  if(!isCfg && !isDbg){
+  sendRow.style.display = noSignal ? 'none' : 'flex';
+  if(!noSignal){
     btn.className = 'btn-send ' + t;
     btn.textContent = '↑ Start measurement with ' + (names[t] || '') + ' signal';
     btn.disabled = !connected;
