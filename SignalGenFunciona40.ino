@@ -195,6 +195,7 @@ float phaseAccum = 0.0;
 unsigned long lastMicros = 0;
 unsigned long signalStart = 0;
 unsigned long sampleTimeAccum = 0;  // sum of the dt values, acts as the signal clock
+unsigned long lastSampleUs = 0;     // micros() of the last sample (SIN/TRI/PUL); reset in loop()
 unsigned long DTMax = 0;            // gap between samples (us) = period / n_points
 
 // Serial buffer
@@ -535,10 +536,15 @@ void generateAndSample() {
 
   // DTMax-based sampling applies to the three DAC signals. In 'O' it is
   // off, since there the sample is triggered by the edge inside the case.
+  // The time passed to storeSample() is the real time since the previous
+  // sample, not this iteration's dt: several iterations go by between two
+  // samples, and passing only the last dt made the timestamps run about
+  // DTMax / 350 us times too slow.
   if (sigType != 'O') {
     DT += dt;
     if (DT >= DTMax) {
-      storeSample(outVolts, dt);
+      storeSample(outVolts, now - lastSampleUs);
+      lastSampleUs = now;
       DT -= DTMax;
     }
   }
@@ -742,7 +748,11 @@ void loop() {
     digitalWrite(PIN_EC, LOW);
     old_ecPrev = false;
     old_lastSampleUs = micros();  // time origin of the train
-  } else digitalWrite(PIN_EC, HIGH);
+  } else {
+    digitalWrite(PIN_EC, HIGH);
+    lastSampleUs = micros();  // time origin of the signal
+    DT = 0;                   // don't carry the previous signal's leftover
+  }
   for (int c = 0; c < n_cycles; c++) {
     runOnePeriod();
   }
