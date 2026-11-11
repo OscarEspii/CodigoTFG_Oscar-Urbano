@@ -181,9 +181,10 @@ connected. It is off by default.
 
 © 2026 Oscar Urbano and contributors.
 
-This work is licensed under the
-[Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
-See [`LICENSE`](LICENSE) for the full text. You may share and adapt it for
-any purpose, including commercially, as long as you give appropriate
-credit to the authors, link to the license, and indicate if changes were
-made.
+This project is licensed under the
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
+See [`LICENSE`](LICENSE) for the full text. You may use, modify and
+distribute it for any purpose, including commercially. If you redistribute
+it or a modified version, you must include the license, keep the copyright
+and attribution notices, state the changes you made, and include the
+attribution in the [`NOTICE`](NOTICE) file.
