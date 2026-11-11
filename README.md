@@ -1,10 +1,14 @@
 # Memristor characterisation tool
 
-A signal generator and acquisition system for characterising memristors with
-the TK042 chip. An Arduino Mega 2560 generates the test signal through an
-8-bit R-2R ladder and samples the response with an MCP3304 ADC. A web
-interface running in the browser configures each measurement, talks to the
-Arduino over USB serial, and plots and exports the results.
+A signal generator and acquisition system for characterising memristors
+with the TK042 chip from IC-Malaga. The TK042 is a memristor measurement
+system that drives a given current through the memristor, set by a control
+voltage. This project adds the electronics around it. An Arduino Mega 2560
+produces the control voltage through an 8-bit R-2R digital-to-analog
+converter (DAC), and reads the memristor's two terminal voltages with an
+MCP3304 analog-to-digital converter (ADC). A web interface running in the
+browser configures each measurement, talks to the Arduino over USB serial,
+and plots and exports the results.
 
 Developed as part of Oscar Urbano's bachelor's thesis (TFG).
 
@@ -17,20 +21,77 @@ Developed as part of Oscar Urbano's bachelor's thesis (TFG).
 
 ## Hardware
 
-- Arduino Mega 2560
-- 8-bit R-2R ladder on pins 22–29 (port A) as the DAC
-- MCP3304 ADC on the hardware SPI bus, chip select on pin 53
-- TK042 memristor chip, controlled through:
+The system has three parts around an Arduino Mega 2560: the TK042, a DAC
+that sets its control voltage, and an ADC that reads back the memristor's
+voltages.
 
-| Pin | Signal | Function |
+### TK042 (IC-Malaga)
+
+The TK042 drives a current through the selected memristor. The current is
+proportional to the control voltage coming from the DAC: I = K · Vctrl. The
+web interface measures K for each current mirror range during calibration.
+The Arduino sets the chip's digital inputs directly:
+
+| Arduino pin | TK042 signal | Function |
 | --- | --- | --- |
 | 32 | SM1 | Active memristor |
-| 33 | SM2 | Current direction |
+| 33 | SM2 | Current direction (high = forward, MEM1/MEM2 → MEMC; low = reverse) |
 | 34 | EC | Current enable (in OLD mode, the pulse signal itself) |
 | 35, 36 | M0, M1 | Current mirror range: `00` = x1/8, `01` = x1/4, `10` = x1/2, `11` = x1 |
 
 The TK042 control input must not exceed 1.5 V. The firmware clips every
 output voltage to ±1 V as a safety margin, whatever the frame asks for.
+
+### DAC: 8-bit R-2R ladder
+
+The control voltage comes from an 8-bit R-2R resistor ladder on Arduino
+pins 22–29. These eight pins are port A of the ATmega2560, with bit 0
+(least significant) on pin 22 and bit 7 (most significant) on pin 29:
+
+| Arduino pin | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Port A bit | PA0 (LSB) | PA1 | PA2 | PA3 | PA4 | PA5 | PA6 | PA7 (MSB) |
+
+The firmware treats the eight pins as one 8-bit word, not as eight separate
+bits. Instead of calling `digitalWrite()` once per pin, it writes the whole
+byte to the port register in a single instruction (`PORTA = value`, see
+`dacWrite()`), so all eight pins change at the same instant. Setting the
+bits one at a time would be slower, and the ladder would briefly output
+wrong intermediate codes while some bits had changed and others had not.
+Going from 127 (`01111111`) to 128 (`10000000`), for example, changes
+every bit, and the output could pass through 0 or 255 on the way.
+
+With a 5 V reference, each step is 5 V / 255 ≈ 19.6 mV, so the ±1 V limit
+uses codes 0 to 51. The ladder only produces positive voltages. The sign
+of the signal is set separately with SM2, which reverses the current
+direction.
+
+### ADC: MCP3304
+
+The memristor's voltages are read with a Microchip MCP3304. It is a single
+chip with 8 inputs, used here in single-ended mode on two channels: CH0
+reads node V01 of the TK042 and CH1 reads node V02. Every sample reads
+both channels, one after the other. The MCP3304 is connected to the Mega's
+hardware SPI bus (1 MHz, SPI mode 0):
+
+| MCP3304 pin | Function | Connection |
+| --- | --- | --- |
+| 1 | CH0 | TK042 V01 |
+| 2 | CH1 | TK042 V02 |
+| 3–8 | CH2–CH7 | Unused |
+| 9 | DGND | Ground |
+| 10 | CS/SHDN | Arduino pin 53 |
+| 11 | DIN | Arduino pin 51 (MOSI) |
+| 12 | DOUT | Arduino pin 50 (MISO) |
+| 13 | CLK | Arduino pin 52 (SCK) |
+| 14 | AGND | Ground |
+| 15 | VREF | 5 V (the firmware assumes `V_REF = 5.0`) |
+| 16 | VDD | 5 V |
+
+Pin numbers are for the 16-pin PDIP/SOIC package, from the Microchip
+datasheet DS21697 (the firmware's read routine follows its Figure 6-4).
+Readings are 12-bit (0–4095). The firmware adds the sign from SM2 and
+converts them to volts before sending them.
 
 ## Getting started
 
@@ -115,3 +176,14 @@ connected. It is off by default.
 
 - **Oscar Urbano** ([@OscarEspii](https://github.com/OscarEspii)), author
 - **Rodrigo Picos Gaya** ([@rpicos-uib](https://github.com/rpicos-uib)), contributor
+
+## License
+
+© 2026 Oscar Urbano and contributors.
+
+This work is licensed under the
+[Creative Commons Attribution 4.0 International License (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).
+See [`LICENSE`](LICENSE) for the full text. You may share and adapt it for
+any purpose, including commercially, as long as you give appropriate
+credit to the authors, link to the license, and indicate if changes were
+made.
