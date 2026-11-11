@@ -910,7 +910,7 @@ body.light .toggle-track::after{background:#fffdf8}
         <tr><td><code>MEM</code></td><td>integer</td><td>—</td><td>0 or 1</td><td>Memristor: 0 = memristor 1 (SM1 low), 1 = memristor 2 (SM1 high).</td></tr>
         <tr><td><code>INT</code></td><td>text, 2 digits</td><td>—</td><td><code>00</code> <code>01</code> <code>10</code> <code>11</code></td><td>Current mirror range, digits M0 M1: 00 = ×1/8, 01 = ×1/4, 10 = ×1/2, 11 = ×1.</td></tr>
         <tr><td><code>NCYC</code></td><td>integer</td><td>cycles</td><td>≥ 1</td><td>Number of cycles. In OLD, number of pulses (max. 512).</td></tr>
-        <tr><td><code>NPTS</code></td><td>integer</td><td>samples/cycle</td><td>1 … 512 / NCYC</td><td>Samples per cycle. If NCYC × NPTS &gt; 512, NPTS is reduced. Ignored in OLD.</td></tr>
+        <tr><td><code>NPTS</code></td><td>integer</td><td>samples/cycle</td><td>1 … 512 / NCYC</td><td>Samples per cycle. If NCYC × NPTS &gt; 512, NPTS is reduced; below 1, 1 is used. Ignored in OLD.</td></tr>
       </table></div>
 
       <div class="cmd-type">SIN · sine</div>
@@ -957,6 +957,7 @@ body.light .toggle-track::after{background:#fffdf8}
         <tr><th>Reply</th><th>When</th></tr>
         <tr><td><code>OK:READY</code></td><td>At power-up or reset (also when the port is opened).</td></tr>
         <tr><td><code>WARN:NPTS_CLIPPED_TO_MAX</code></td><td>NCYC × NPTS &gt; 512: NPTS was reduced (in OLD, NCYC &gt; 512 and NCYC was reduced).</td></tr>
+        <tr><td><code>WARN:NPTS_CLIPPED_TO_MIN</code></td><td>NPTS &lt; 1 in SIN, TRI or PUL: 1 is used.</td></tr>
         <tr><td><code>WARN:FREQ_CLIPPED_TO_MIN</code></td><td>F &lt; 1 Hz in SIN or TRI: 1 Hz is used.</td></tr>
         <tr><td><code>WARN:VOLTAGE_CLIP_1V</code></td><td>The signal goes beyond ±1 V: its peaks will be clipped.</td></tr>
         <tr><td><code>OK:SIN</code> <code>OK:TRI</code> <code>OK:PUL</code> <code>OK:OLD</code></td><td>Frame accepted: the measurement starts now. Warnings, if any, come before it.</td></tr>

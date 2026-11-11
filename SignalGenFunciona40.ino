@@ -48,7 +48,7 @@
 //      MEM    1 = SM1 high, 0 = SM1 low (which memristor is active)
 //      INT    two digits M0 M1, the current mirror (see the pin table)
 //      NCYC   number of cycles (min. 1). In OLD, number of pulses (max. 512)
-//      NPTS   samples per cycle. NCYC x NPTS <= 512. Not used in OLD,
+//      NPTS   samples per cycle (min. 1). NCYC x NPTS <= 512. Not used in OLD,
 //             but sent anyway so the format stays the same
 //    SIN    F    frequency in Hz (min. 1, the absolute value is taken)
 //           AMP  peak amplitude in V
@@ -67,6 +67,7 @@
 //  Replies to a frame, in this order
 //    WARN:NPTS_CLIPPED_TO_MAX   NCYC x NPTS > 512, NPTS has been reduced
 //                               (in OLD, NCYC > 512 and NCYC has been reduced)
+//    WARN:NPTS_CLIPPED_TO_MIN   NPTS < 1 in SIN/TRI/PUL, 1 is used
 //    WARN:FREQ_CLIPPED_TO_MIN   F < 1 Hz in SIN/TRI, 1 Hz is used
 //    WARN:VOLTAGE_CLIP_1V       the signal goes beyond 1 V, peaks will be clipped
 //    OK:SIN | OK:TRI | OK:PUL | OK:OLD   frame accepted, measurement starts
@@ -313,6 +314,12 @@ void parseFrame(const char* frame) {
   n_points = (int)pts;
 
   if (n_cycles < 1) n_cycles = 1;  // otherwise there is a division by zero further down
+  // Same for NPTS: DTMax = period / n_points below. OLD doesn't use NPTS,
+  // so it isn't checked (or warned about) there.
+  if (type[0] != 'O' && n_points < 1) {
+    n_points = 1;
+    Serial.println("WARN:NPTS_CLIPPED_TO_MIN");
+  }
   if (type[0] == 'O') {
     // Here there is one sample per pulse, so what limits the buffer is
     // directly the number of pulses. NPTS is read so as not to break the

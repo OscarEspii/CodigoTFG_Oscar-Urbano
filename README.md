@@ -275,7 +275,7 @@ TYPE:SIN,F:10.00,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:3,NPTS:170
 | `MEM` | integer | — | `0` or `1` | Memristor: `0` = memristor 1 (SM1 low), `1` = memristor 2 (SM1 high). |
 | `INT` | text, 2 digits | — | `00`, `01`, `10`, `11` | Current mirror range. First digit M0, second M1: `00` = ×1/8, `01` = ×1/4, `10` = ×1/2, `11` = ×1. |
 | `NCYC` | integer | cycles | ≥ 1 | Number of cycles. In `OLD`, the number of pulses (max. 512). |
-| `NPTS` | integer | samples per cycle | 1 to 512 / `NCYC` | Samples per cycle. If `NCYC × NPTS` > 512, `NPTS` is reduced. Not used in `OLD`, but send it anyway. |
+| `NPTS` | integer | samples per cycle | 1 to 512 / `NCYC` | Samples per cycle. If `NCYC × NPTS` > 512, `NPTS` is reduced; below 1, 1 is used. Not used in `OLD`, but send it anyway. |
 
 `MEM` and `INT` are applied as soon as the frame is read, even if `TYPE`
 turns out to be unknown.
@@ -341,6 +341,7 @@ frame asks for, to protect the TK042's control input.
 | --- | --- |
 | `OK:READY` | At power-up or reset, including when the port is opened. |
 | `WARN:NPTS_CLIPPED_TO_MAX` | `NCYC × NPTS` > 512, so `NPTS` was reduced. In `OLD`, `NCYC` > 512 and `NCYC` was reduced. |
+| `WARN:NPTS_CLIPPED_TO_MIN` | `NPTS` < 1 in `SIN`, `TRI` or `PUL`; 1 is used. |
 | `WARN:FREQ_CLIPPED_TO_MIN` | `F` < 1 Hz in `SIN` or `TRI`; 1 Hz is used. |
 | `WARN:VOLTAGE_CLIP_1V` | The requested signal goes beyond ±1 V; its peaks will be clipped. |
 | `OK:SIN`, `OK:TRI`, `OK:PUL`, `OK:OLD` | The frame was accepted and the measurement starts now. Any warnings come before this line. |
