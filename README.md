@@ -123,11 +123,17 @@ in order.
 
 1. **Serial port permission.** Only members of the `dialout` group can
    open serial ports. Check with `groups`. If `dialout` is not listed, run
-   the following, then log out and back in (or reboot):
+   the following, then **reboot** the computer:
 
    ```
    sudo usermod -aG dialout $USER
    ```
+
+   Logging out and back in is often not enough: many desktops keep parts
+   of the session running, so the new group is only picked up after a
+   reboot. Run `groups` afterwards to confirm `dialout` is listed. Adding a
+   user to `dialout` needs an administrator account, but the user does not
+   need administrator rights to use the port afterwards.
 
    Without this, Chrome shows an error such as "Failed to open serial
    port" after you pick the port.
