@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,9 +80,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .tab.tri .tab-indicator{background:var(--tri)}
 .tab.pul .tab-indicator{background:var(--pul)}
 .tab.old .tab-indicator{background:var(--old)}
-/* Pestañas bloqueadas mientras está seleccionado el panel del chip antiguo */
+/* Tabs locked while the old-chip panel is selected */
 .tab.locked{opacity:.4}
-.tab.locked .tab-sub::after{content:' · BLOQUEADO';color:var(--warn)}
+.tab.locked .tab-sub::after{content:' · LOCKED';color:var(--warn)}
 .tab.active .tab-indicator{transform:scaleX(1)}
 
 /* MAIN PANEL */
@@ -117,12 +117,12 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:17px;heigh
 .dbg-range::-webkit-slider-thumb{background:var(--dbg);box-shadow:0 0 5px rgba(56,189,248,.5)}
 input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
 .pb-bounds{display:flex;justify-content:space-between;font-size:11.2px;color:var(--dim);margin-top:4px}
-/* Nota fija bajo un deslizador (el porqué del límite inferior de T1) */
+/* Fixed note under a slider (why T1 has a lower limit) */
 .pb-note{margin-top:9px;padding:7px 9px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.28);border-radius:6px;font-size:11.2px;line-height:1.55;color:var(--warn)}
-/* Nota fija del panel del chip antiguo */
+/* Fixed note in the old-chip panel */
 .old-note{padding:9px 11px;margin-bottom:12px;background:var(--old-dim);border:1px solid rgba(232,121,249,.28);border-radius:7px;font-size:11.9px;line-height:1.6;color:var(--old)}
 
-/* TRAMA PREVIEW */
+/* FRAME PREVIEW */
 .trama-row{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px}
 .trama-lbl{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap}
 .trama-val{font-size:16.2px;font-weight:500;flex:1}
@@ -228,20 +228,20 @@ body.light .btn-export-green{color:#0a0a0a}
 .int-card-fill{height:100%;border-radius:2px;background:var(--warn);transition:width .2s}
 .int-card.active-int .int-card-bar{background:rgba(251,191,36,0.2)}
 
-/* Calibración K de la fuente de corriente */
+/* K calibration of the current source */
 .k-switch{display:flex;gap:6px;background:var(--s2);border:1px solid var(--border);border-radius:14px;padding:6px;margin-bottom:14px}
 .k-switch-opt{flex:1;padding:16px 10px;text-align:center;font-family:var(--display);font-size:26px;letter-spacing:.05em;color:var(--muted);border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all .2s;user-select:none}
 .k-switch-opt:hover{color:var(--text);border-color:var(--border2)}
 .k-switch-opt.k-sel{color:var(--cfg);border-color:var(--cfg);background:var(--cfg-dim);box-shadow:0 0 22px var(--cfg-dim)}
-/* Barra de la resistencia patrón: es común a los cuatro rangos porque se
-   cambia físicamente entre medidas (la misma R no sirve para todos) */
+/* Reference resistor bar: shared by the four ranges because the resistor
+   is physically swapped between measurements (one R doesn't suit them all) */
 .k-cal-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .k-cal-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .k-input-r{width:104px}
 .k-cal-note{flex:1 1 100%;font-size:10.5px;color:var(--dim);line-height:1.55}
-/* La rejilla ya NO se esconde con el conmutador: para poder calibrar habría
-   que activar antes una K calculada que todavía no existe. El conmutador
-   sigue decidiendo qué K se usa; aquí solo cambia el color del resultado. */
+/* The grid is NO LONGER hidden by the switch: calibrating would require
+   first enabling a measured K that doesn't exist yet. The switch still
+   decides which K is used; here it only changes the result's colour. */
 .k-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .k-card{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center}
 .k-card-mult{font-family:var(--display);font-size:22px;color:var(--cfg);margin-bottom:2px}
@@ -251,7 +251,7 @@ body.light .btn-export-green{color:#0a0a0a}
 .k-unit{font-size:10.5px;color:var(--muted);width:30px;text-align:left}
 .k-res{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:8px}
 .k-grid.k-on .k-res{color:var(--cfg)}
-/* Botón de medida automática, uno por rango */
+/* Automatic measurement button, one per range */
 .k-btn{width:100%;background:var(--cfg-dim);border:1px solid var(--cfg);border-radius:6px;color:var(--cfg);font-family:var(--mono);font-size:11px;letter-spacing:.04em;padding:6px 4px;cursor:pointer;transition:all .15s}
 .k-btn:hover:not(:disabled){background:rgba(167,139,250,0.24)}
 .k-btn:disabled{opacity:.35;cursor:not-allowed}
@@ -262,7 +262,7 @@ body.light .btn-export-green{color:#0a0a0a}
 .k-stats{font-family:var(--mono);font-size:10px;color:var(--dim);line-height:1.6;margin-top:3px}
 .k-warn{font-size:9.5px;color:var(--warn);line-height:1.45;margin-top:6px;text-align:left}
 
-/* Config summary trama */
+/* Config summary frame */
 .cfg-trama-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:7px;margin-top:0}
 .cfg-trama-lbl{font-size:12.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);white-space:nowrap}
 .cfg-trama-val{font-size:15px;font-weight:500;color:var(--cfg)}
@@ -299,11 +299,11 @@ body.light .btn-export-green{color:#0a0a0a}
 .res-empty{padding:24px;text-align:center;color:var(--dim);font-size:12.5px;line-height:2}
 canvas.res-cv{width:100%;height:200px;display:block}
 
-/* Número editable */
+/* Editable number */
 .pb-num[contenteditable]{outline:none;border-bottom:1px solid var(--border2);cursor:text;min-width:20px}
 .pb-num[contenteditable]:focus{border-bottom-color:currentColor}
 
-/* CFG subtítulos */
+/* CFG subtitles */
 .cfg-subtitle{font-size:11.2px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);padding:14px 16px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
 
 /* Toggle */
@@ -316,7 +316,7 @@ canvas.res-cv{width:100%;height:200px;display:block}
 .toggle-track::after{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s}
 .toggle input:checked + .toggle-track::after{transform:translateX(18px)}
 
-/* Modo claro */
+/* Light mode */
 body.light{--bg:#f5f0e6;--s1:#fffdf8;--s2:#f3ecda;--border:#e6ddc8;--border2:#d3c7a8;--text:#2b2a22;--muted:#6b6355;--dim:#948a72}
 body.light .log-panel{box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
 body.light .log-body{background:#fffdf8}
@@ -333,13 +333,13 @@ body.light #cycles-val[contenteditable]{color:#666 !important}
 body.light #points-val{color:#666 !important}
 body.light #points-val[contenteditable]{color:#666 !important}
 
-/* Textos que son blancos hardcoded en modo claro */
+/* Texts that are hardcoded white, in light mode */
 body.light .logo{color:#111}
 body.light .pb-num{color:#444}
 body.light .pb-unit{color:#444}
 body.light .pb-label{color:#444}
 body.light .pb-bounds{color:#666}
-/* trama mantiene color de señal en modo claro también */
+/* the frame keeps the signal colour in light mode too */
 body.light .trama-key{color:#666}
 body.light .tab-name{color:#444}
 body.light .tab-name.active{color:inherit}
@@ -356,7 +356,7 @@ body.light .res-block-meta{color:#666}
 body.light .res-chart-lbl{color:#444}
 body.light .res-chart-wrap{background:#fffdf8 !important;border-color:#e6ddc8 !important;box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
 body.light .res-legend-dac{color:rgba(0,0,0,0.55)}
-/* Botones cfg modo claro */
+/* Config buttons, light mode */
 body.light .mem-card{background:#fffdf8 !important;border-color:#e6ddc8 !important;color:#555 !important;box-shadow:0 1px 2px rgba(70,58,30,.06),0 2px 8px rgba(70,58,30,.05)}
 body.light .mem-card:hover{border-color:#c9bb95 !important}
 body.light .mem-card.active-m1{background:#eef8ec !important;border-color:var(--cfg) !important}
@@ -386,24 +386,24 @@ body.light .k-switch-opt{color:#777}
 body.light .k-switch-opt.k-sel{color:var(--cfg) !important;background:rgba(167,139,250,0.15) !important}
 body.light .k-cal-bar{background:#fffdf8 !important;border-color:#e6ddc8 !important}
 body.light .k-btn{background:rgba(167,139,250,0.15) !important;color:#6d43e0 !important;border-color:#a78bfa !important}
-/* El ámbar de los avisos no se lee sobre el fondo claro: se oscurece */
+/* The warning amber is unreadable on the light background: darken it */
 body.light .k-warn{color:#b45309 !important}
 body.light .k-msg.warn{color:#b45309 !important}
 
-/* Títulos grandes cfg */
+/* Large config titles */
 .cfg-big-title{font-family:var(--display);font-size:28px;color:#fff;padding:18px 16px 10px;border-bottom:1px solid var(--border);letter-spacing:0.03em}
 body.light .cfg-big-title{color:#111}
 
-/* Botón sol/luna */
+/* Sun/moon button */
 .theme-btn{background:none;border:1px solid var(--border2);border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:border-color .2s,color .2s;flex-shrink:0}
 .theme-btn:hover{border-color:var(--text);color:var(--text)}
 
-/* Botón animación header */
+/* Header animation button */
 .anim-btn{background:none;border:1px solid var(--border2);border-radius:50%;width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:border-color .2s,color .2s;flex-shrink:0}
 .anim-btn:hover{border-color:var(--text);color:var(--text)}
 .anim-btn.paused{border-color:var(--pul);color:var(--pul)}
 
-/* Tooltip de las gráficas (THD, osciloscopio y resultados) */
+/* Chart tooltip (THD, oscilloscope and results) */
 #thd-canvas,#scope-canvas,canvas.res-cv{cursor:crosshair}
 .cv-tip{position:fixed;z-index:60;pointer-events:none;display:none;background:rgba(10,13,20,0.94);border:1px solid var(--border2);border-radius:6px;padding:5px 9px;font-family:var(--mono);font-size:11.5px;color:var(--text);white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.4)}
 body.light .cv-tip{background:rgba(255,253,248,0.97);border-color:#e6ddc8;color:#2b2a22}
@@ -423,14 +423,14 @@ body.light .toggle-track::after{background:#fffdf8}
         <div class="tagline">Arduino · Web Serial API · Chrome / Edge</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px">
-      <button class="anim-btn" id="anim-btn" onclick="toggleAnim()" title="Pausar/reanudar animación">
+      <button class="anim-btn" id="anim-btn" onclick="toggleAnim()" title="Pause/resume animation">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 12 Q6 4 12 12 Q18 20 22 12"/>
           <line id="anim-x1" x1="6" y1="6" x2="18" y2="18" stroke-width="2.5" style="display:none"/>
           <line id="anim-x2" x1="18" y1="6" x2="6" y2="18" stroke-width="2.5" style="display:none"/>
         </svg>
       </button>
-      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Cambiar modo claro/oscuro">
+      <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark mode">
         <svg id="theme-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
         </svg>
@@ -442,15 +442,16 @@ body.light .toggle-track::after{background:#fffdf8}
 
   <!-- WARN -->
   <div class="warn-no-serial" id="warn">
-    ⚠ Web Serial API no disponible. Usa <strong>Chrome</strong> o <strong>Edge</strong>.
-    <a href="https://caniuse.com/web-serial" target="_blank"> Ver compatibilidad →</a>
+    ⚠ Web Serial API not available. Use <strong>Chrome</strong> or <strong>Edge</strong>.
+    <a href="https://caniuse.com/web-serial" target="_blank"> Check compatibility →</a>
+
   </div>
 
   <!-- STATUS -->
   <div class="status-row">
     <div class="dot" id="dot"></div>
-    <span class="status-txt" id="stxt">Desconectado</span>
-    <button class="btn-conn" id="btn-conn" onclick="toggleConn()">Conectar</button>
+    <span class="status-txt" id="stxt">Disconnected</span>
+    <button class="btn-conn" id="btn-conn" onclick="toggleConn()">Connect</button>
   </div>
 
   <!-- TOOLBAR -->
@@ -459,7 +460,7 @@ body.light .toggle-track::after{background:#fffdf8}
       <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M0 18 C15 18 15 4 30 4 C45 4 45 32 60 32 C75 32 75 4 90 4 C105 4 105 32 120 32" stroke="#00e5b0" stroke-width="2" fill="none"/>
       </svg>
-      <div class="tab-name">Sinusoidal</div>
+      <div class="tab-name">Sine</div>
       <div class="tab-sub">Freq · Amp · Offset</div>
       <div class="tab-indicator"></div>
     </div>
@@ -467,7 +468,7 @@ body.light .toggle-track::after{background:#fffdf8}
       <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <polyline points="0,28 20,8 40,28 60,8 80,28 100,8 120,28" stroke="#f59e0b" stroke-width="2" fill="none"/>
       </svg>
-      <div class="tab-name">Triangular</div>
+      <div class="tab-name">Triangle</div>
       <div class="tab-sub">Freq · Vmax · Vmin</div>
       <div class="tab-indicator"></div>
     </div>
@@ -475,7 +476,7 @@ body.light .toggle-track::after{background:#fffdf8}
       <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <polyline points="0,28 0,28 18,28 18,8 38,8 38,28 60,28 60,8 80,8 80,28 102,28 102,8 120,8 120,28" stroke="#f43f5e" stroke-width="2" fill="none"/>
       </svg>
-      <div class="tab-name">Pulsos</div>
+      <div class="tab-name">Pulses</div>
       <div class="tab-sub">VHI · VLO · Dur · Per</div>
       <div class="tab-indicator"></div>
     </div>
@@ -483,7 +484,7 @@ body.light .toggle-track::after{background:#fffdf8}
       <svg class="tab-icon" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <polyline points="0,28 10,28 10,8 17,8 17,28 51,28 51,8 58,8 58,28 92,28 92,8 99,8 99,28 120,28" stroke="#e879f9" stroke-width="2" fill="none"/>
       </svg>
-      <div class="tab-name">Pulsos EC</div>
+      <div class="tab-name">EC Pulses</div>
       <div class="tab-sub">EC · T1 · T2</div>
       <div class="tab-indicator"></div>
     </div>
@@ -509,7 +510,7 @@ body.light .toggle-track::after{background:#fffdf8}
         <circle cx="70" cy="8" r="3" fill="#38bdf8"/>
       </svg>
       <div class="tab-name">Debug</div>
-      <div class="tab-sub">Herramientas internas</div>
+      <div class="tab-sub">Internal tools</div>
       <div class="tab-indicator"></div>
     </div>
   </div>
@@ -525,14 +526,14 @@ body.light .toggle-track::after{background:#fffdf8}
       <div id="params-sin">
         <div class="params-grid cols3">
           <div class="param-block sin-focus">
-            <div class="pb-label">Frecuencia</div>
+            <div class="pb-label">Frequency</div>
             <div class="pb-val-row"><span class="pb-num" id="s-freq-v">50</span><span class="pb-unit">Hz</span></div>
-            <!-- Máx. 100 Hz: por encima el THD medido se dispara (ver barrido de THD en Debug) -->
+            <!-- Max. 100 Hz: above that the measured THD shoots up (see the THD sweep in Debug) -->
             <input type="range" class="sin-range" id="s-freq" min="1" max="100" step="1" value="50" oninput="upd()">
             <div class="pb-bounds"><span>1</span><span>100 Hz</span></div>
           </div>
           <div class="param-block sin-focus">
-            <div class="pb-label">Amp. pico</div>
+            <div class="pb-label">Peak amp.</div>
             <div class="pb-val-row"><span class="pb-num" id="s-amp-v" style="color:#fff">0.50</span><span class="pb-unit">V</span></div>
             <input type="range" class="sin-range" id="s-amp" min="0" max="20" step="1" value="10" oninput="upd()" onchange="clampSinRanges('amp'); upd()" onblur="clampSinRanges('amp'); upd()" onmouseup="clampSinRanges('amp'); upd()" ontouchend="clampSinRanges('amp'); upd()">
             <div class="pb-bounds"><span>0</span><span id="s-amp-max">1 V</span></div>
@@ -545,7 +546,7 @@ body.light .toggle-track::after{background:#fffdf8}
           </div>
         </div>
         <div class="trama-row">
-          <span class="trama-lbl">Trama →</span>
+          <span class="trama-lbl">Frame →</span>
           <span class="trama-val sin" id="trama-sin">TYPE:SIN,F:50,AMP:0.50,OFF:0.00</span>
         </div>
       </div>
@@ -554,9 +555,9 @@ body.light .toggle-track::after{background:#fffdf8}
       <div id="params-tri" style="display:none">
         <div class="params-grid cols3">
           <div class="param-block tri-focus">
-            <div class="pb-label">Frecuencia</div>
+            <div class="pb-label">Frequency</div>
             <div class="pb-val-row"><span class="pb-num" id="t-freq-v">50</span><span class="pb-unit">Hz</span></div>
-            <!-- Máx. 100 Hz: por encima el THD medido se dispara (ver barrido de THD en Debug) -->
+            <!-- Max. 100 Hz: above that the measured THD shoots up (see the THD sweep in Debug) -->
             <input type="range" class="tri-range" id="t-freq" min="1" max="100" step="1" value="50" oninput="upd()">
             <div class="pb-bounds"><span>1</span><span>100 Hz</span></div>
           </div>
@@ -574,7 +575,7 @@ body.light .toggle-track::after{background:#fffdf8}
           </div>
         </div>
         <div class="trama-row">
-          <span class="trama-lbl">Trama →</span>
+          <span class="trama-lbl">Frame →</span>
           <span class="trama-val tri" id="trama-tri">TYPE:TRI,F:50,VMAX:0.50,VMIN:-0.50</span>
         </div>
       </div>
@@ -583,84 +584,84 @@ body.light .toggle-track::after{background:#fffdf8}
       <div id="params-pul" style="display:none">
         <div class="params-grid" style="grid-template-columns:1fr 1fr;gap:12px">
           <div class="param-block pul-focus">
-            <div class="pb-label">V. alto (VHI)</div>
+            <div class="pb-label">V. high (VHI)</div>
             <div class="pb-val-row"><span class="pb-num" id="p-vhi-v" style="color:#fff">0.50</span><span class="pb-unit">V</span></div>
             <input type="range" class="pul-range" id="p-vhi" min="0" max="20" step="1" value="10" oninput="upd()">
             <div class="pb-bounds"><span>0 V</span><span>+1 V</span></div>
           </div>
           <div class="param-block pul-focus">
-            <div class="pb-label">V. bajo (VLO)</div>
+            <div class="pb-label">V. low (VLO)</div>
             <div class="pb-val-row"><span class="pb-num" id="p-vlo-v">-0.50</span><span class="pb-unit">V</span></div>
             <input type="range" class="pul-range" id="p-vlo" min="-20" max="0" step="1" value="-10" oninput="upd()">
             <div class="pb-bounds"><span>-1 V</span><span>0 V</span></div>
           </div>
           <div class="param-block pul-focus">
-            <div class="pb-label">Duración pulso</div>
+            <div class="pb-label">Pulse duration</div>
             <div class="pb-val-row"><span class="pb-num" id="p-dur-v">5000</span><span class="pb-unit">µs</span></div>
             <input type="range" class="pul-range" id="p-dur" min="1" max="10000" step="1" value="5000" oninput="upd()">
             <div class="pb-bounds"><span>1 µs</span><span>10000 µs</span></div>
           </div>
           <div class="param-block pul-focus">
-            <div class="pb-label">Periodo</div>
+            <div class="pb-label">Period</div>
             <div class="pb-val-row"><span class="pb-num" id="p-gap-v">10</span><span class="pb-unit">ms</span></div>
             <input type="range" class="pul-range" id="p-gap" min="1" max="1000" step="1" value="10" oninput="upd()">
             <div class="pb-bounds"><span>1 ms</span><span>1000 ms</span></div>
           </div>
         </div>
         <div class="trama-row">
-          <span class="trama-lbl">Trama →</span>
+          <span class="trama-lbl">Frame →</span>
           <span class="trama-val pul" id="trama-pul">TYPE:PUL,VHI:0.50,VLO:-0.50,DUR:5000,PER:10</span>
         </div>
       </div>
 
-      <!-- OLD PARAMS (chip antiguo: la señal la hace el pin EC, no el DAC) -->
+      <!-- OLD PARAMS (old chip: the signal is made by the EC pin, not the DAC) -->
       <div id="params-old" style="display:none">
-        <!-- Nota del panel: oculta a propósito, esto ya lo cuenta la memoria.
+        <!-- Panel note: hidden on purpose, the thesis report already explains this.
         <div class="old-note">
-          Chip antiguo del laboratorio: EC es una entrada <b>digital</b> del chip, gobernada por
-          el pin 34 del Arduino, y la señal consiste en encenderla y apagarla con la cadencia de
-          T1 y T2. <b>No hay tensión ni amplitud que ajustar</b>: el DAC no interviene y se queda
-          a cero durante toda la generación. Mientras este panel esté seleccionado, las señales
-          sinusoidal, triangular y de pulsos quedan bloqueadas: con este cableado podrían dañar
-          el integrado. Se vuelven a habilitar al salir del panel.
+          The lab's old chip: EC is a <b>digital</b> input of the chip, driven by
+          Arduino pin 34, and the signal consists of switching it on and off with the timing of
+          T1 and T2. <b>There is no voltage or amplitude to set</b>: the DAC is not involved and
+          stays at zero for the whole generation. While this panel is selected, the sine,
+          triangle and pulse signals are locked: with this wiring they could damage the
+          chip. They are enabled again when leaving the panel.
           <br><br>
-          <b>Muestreo</b>: una conversión por pulso, disparada en el <b>flanco de bajada</b> de T1,
-          que es el criterio del fabricante (datasheet rev03, pág. 5). Por eso el contador de al
-          lado del botón de medida es aquí el <b>número de pulsos</b> del tren —hasta 512, uno por
-          hueco del buffer del Arduino— y no hay puntos por ciclo que elegir: se devuelve
-          exactamente una muestra por pulso.
+          <b>Sampling</b>: one conversion per pulse, triggered on the <b>falling edge</b> of T1,
+          which is the manufacturer's criterion (datasheet rev03, p. 5). That's why the counter
+          next to the measure button is the <b>number of pulses</b> in the train here (up to 512,
+          one per slot in the Arduino's buffer) and there are no points per cycle to choose:
+          exactly one sample per pulse is returned.
         </div>
         -->
         <div class="params-grid" style="grid-template-columns:1fr 1fr;gap:12px">
           <div class="param-block old-focus">
-            <div class="pb-label">T1 · duración pulso</div>
+            <div class="pb-label">T1 · pulse duration</div>
             <div class="pb-val-row"><span class="pb-num" id="o-t1-v">5000</span><span class="pb-unit">µs</span></div>
-            <!-- El mínimo de 2000 µs no es arbitrario: sale de medir el valor medio de la señal
-                 en el pin 34 con voltímetro y despejar la duración real del pulso, con T2 = 10 ms.
-                 T1 pedido → T1 real (error):  5000→4921 (−1,6 %) · 2000→1822 (−8,9 %) ·
-                 1000→535 (−46,5 %) · 700→406 (−42,0 %) · 500→308 (−38,4 %).
-                 La caída es abrupta entre 2000 y 1000 µs, así que el deslizador corta en 2000.
-                 El firmware NO cambia: por consola se puede seguir mandando TYPE:OLD con
-                 cualquier T1, que es como se han tomado estas medidas. -->
+            <!-- The 2000 µs minimum is not arbitrary: it comes from measuring the mean value of the
+                 signal on pin 34 with a voltmeter and solving for the real pulse duration, with T2 = 10 ms.
+                 Requested T1 → real T1 (error):  5000→4921 (−1.6 %) · 2000→1822 (−8.9 %) ·
+                 1000→535 (−46.5 %) · 700→406 (−42.0 %) · 500→308 (−38.4 %).
+                 The drop is abrupt between 2000 and 1000 µs, so the slider stops at 2000.
+                 The firmware does NOT change: TYPE:OLD can still be sent from the console with
+                 any T1, which is how these measurements were taken. -->
             <input type="range" class="old-range" id="o-t1" min="2000" max="10000" step="1" value="5000" oninput="upd()">
             <div class="pb-bounds"><span>2000 µs</span><span>10000 µs</span></div>
-            <!-- Aviso del deslizador: oculto a propósito; el porqué está en el comentario de arriba.
+            <!-- Slider warning: hidden on purpose; the reason is in the comment above.
             <div class="pb-note" id="o-t1-warn">
-              El deslizador <b>no baja de 2 ms</b>: la duración del pulso la marca el bucle del
-              firmware, no un temporizador, y por debajo de 2 ms la duración real medida se queda
-              <b>por debajo de la mitad</b> de la solicitada.
+              The slider <b>does not go below 2 ms</b>: the pulse duration is set by the firmware's
+              loop, not by a timer, and below 2 ms the measured real duration ends up
+              <b>below half</b> of the requested one.
             </div>
             -->
           </div>
           <div class="param-block old-focus">
-            <div class="pb-label">T2 · periodo</div>
+            <div class="pb-label">T2 · period</div>
             <div class="pb-val-row"><span class="pb-num" id="o-t2-v">10</span><span class="pb-unit">ms</span></div>
             <input type="range" class="old-range" id="o-t2" min="1" max="1000" step="1" value="10" oninput="upd()">
             <div class="pb-bounds"><span>1 ms</span><span>1000 ms</span></div>
           </div>
         </div>
         <div class="trama-row">
-          <span class="trama-lbl">Trama →</span>
+          <span class="trama-lbl">Frame →</span>
           <span class="trama-val old" id="trama-old">TYPE:OLD,T1:5000,T2:10</span>
         </div>
       </div>
@@ -671,31 +672,31 @@ body.light .toggle-track::after{background:#fffdf8}
   <!-- CONFIG PANEL -->
   <div class="cfg-panel" id="cfg-panel">
 
-    <!-- TÍTULO TK042 -->
+    <!-- TK042 TITLE -->
     <div class="cfg-big-title">TK042</div>
 
     <!-- MEMRISTOR -->
     <div class="cfg-section">
-      <div class="cfg-section-title">Selector de Memristor</div>
+      <div class="cfg-section-title">Memristor Selector</div>
       <div class="mem-grid">
         <div class="mem-card active-m1" id="mem-m1" onclick="selectMem(0)">
           <div class="mem-card-badge">X0 · Bit = 0</div>
           <div class="mem-card-title">Memristor 1</div>
-          <div class="mem-card-desc">El bit X0 selecciona<br>el memristor físico 1</div>
+          <div class="mem-card-desc">Bit X0 selects<br>physical memristor 1</div>
           <div class="mem-card-bit">0</div>
         </div>
         <div class="mem-card" id="mem-m2" onclick="selectMem(1)">
           <div class="mem-card-badge">X1 · Bit = 1</div>
           <div class="mem-card-title">Memristor 2</div>
-          <div class="mem-card-desc">El bit X1 selecciona<br>el memristor físico 2</div>
+          <div class="mem-card-desc">Bit X1 selects<br>physical memristor 2</div>
           <div class="mem-card-bit">1</div>
         </div>
       </div>
     </div>
 
-    <!-- INTENSIDAD -->
+    <!-- CURRENT -->
     <div class="cfg-section">
-      <div class="cfg-section-title">Ganancia de Intensidad</div>
+      <div class="cfg-section-title">Current Gain</div>
       <div class="int-grid">
         <div class="int-card" id="int-00" onclick="selectInt('00')">
           <div class="int-card-mult">×⅛</div>
@@ -720,27 +721,27 @@ body.light .toggle-track::after{background:#fffdf8}
       </div>
     </div>
 
-    <!-- CALIBRACIÓN K FUENTE DE CORRIENTE -->
+    <!-- CURRENT SOURCE K CALIBRATION -->
     <div class="cfg-section">
-      <div class="cfg-section-title">Calibración fuente de corriente</div>
+      <div class="cfg-section-title">Current source calibration</div>
       <div class="k-switch">
-        <div class="k-switch-opt k-sel" id="k-opt-teo" onclick="setUseKCal(false)">K teórica</div>
-        <div class="k-switch-opt" id="k-opt-cal" onclick="setUseKCal(true)">K calculada</div>
+        <div class="k-switch-opt k-sel" id="k-opt-teo" onclick="setUseKCal(false)">Theoretical K</div>
+        <div class="k-switch-opt" id="k-opt-cal" onclick="setUseKCal(true)">Measured K</div>
       </div>
-      <!-- Resistencia patrón: se conecta en lugar del dispositivo bajo medida
-           y de su caída (V01−V02) sale la corriente real, I = ΔV/R -->
+      <!-- Reference resistor: connected in place of the device under test;
+           its voltage drop (V01−V02) gives the real current, I = ΔV/R -->
       <div class="k-cal-bar">
-        <span class="k-cal-lbl">Resistencia patrón</span>
+        <span class="k-cal-lbl">Reference resistor</span>
         <input class="k-input k-input-r" id="k-rpatron" type="number" step="any" min="0" value="1000" onchange="setKCalR()">
         <span class="k-unit">Ω</span>
-        <span class="k-cal-note">Sustituye el dispositivo bajo medida por una resistencia conocida y pulsa «Calibrar» en el rango que quieras. Se manda una rampa 0→1 V (TRI, 5 Hz, 2 ciclos, 255 pts) con ese rango en INT, se calcula I = (V01−V02)/R en cada muestra y K sale como el cociente de las medias, K = media(I)/media(Vctrl). Cada rango necesita su propia R (ver «R sug.» de cada tarjeta): con una R demasiado pequeña la caída no llega a la resolución del ADC y la medida no significa nada.</span>
+        <span class="k-cal-note">Replace the device under test with a known resistor and press “Calibrate” on the range you want. A 0→1 V ramp is sent (TRI, 5 Hz, 2 cycles, 255 pts) with that range in INT, I = (V01−V02)/R is computed for each sample, and K is the ratio of the means, K = mean(I)/mean(Vctrl). Each range needs its own R (see “Sugg. R” on each card): with too small an R the voltage drop doesn't reach the ADC's resolution and the measurement is meaningless.</span>
       </div>
       <div class="k-grid" id="k-grid">
         <div class="k-card">
           <div class="k-card-mult">×⅛</div>
           <div class="k-card-bits">00</div>
-          <button class="k-btn" id="k-btn-00" onclick="startKCal('00')" disabled>Calibrar</button>
-          <div class="k-hint" id="k-hint-00">R sug. ≈ —</div>
+          <button class="k-btn" id="k-btn-00" onclick="startKCal('00')" disabled>Calibrate</button>
+          <div class="k-hint" id="k-hint-00">Sugg. R ≈ —</div>
           <div class="k-msg" id="k-msg-00"></div>
           <div class="k-res" id="k-res-00">K = —</div>
           <div class="k-stats" id="k-stats-00"></div>
@@ -749,8 +750,8 @@ body.light .toggle-track::after{background:#fffdf8}
         <div class="k-card">
           <div class="k-card-mult">×¼</div>
           <div class="k-card-bits">01</div>
-          <button class="k-btn" id="k-btn-01" onclick="startKCal('01')" disabled>Calibrar</button>
-          <div class="k-hint" id="k-hint-01">R sug. ≈ —</div>
+          <button class="k-btn" id="k-btn-01" onclick="startKCal('01')" disabled>Calibrate</button>
+          <div class="k-hint" id="k-hint-01">Sugg. R ≈ —</div>
           <div class="k-msg" id="k-msg-01"></div>
           <div class="k-res" id="k-res-01">K = —</div>
           <div class="k-stats" id="k-stats-01"></div>
@@ -759,8 +760,8 @@ body.light .toggle-track::after{background:#fffdf8}
         <div class="k-card">
           <div class="k-card-mult">×½</div>
           <div class="k-card-bits">10</div>
-          <button class="k-btn" id="k-btn-10" onclick="startKCal('10')" disabled>Calibrar</button>
-          <div class="k-hint" id="k-hint-10">R sug. ≈ —</div>
+          <button class="k-btn" id="k-btn-10" onclick="startKCal('10')" disabled>Calibrate</button>
+          <div class="k-hint" id="k-hint-10">Sugg. R ≈ —</div>
           <div class="k-msg" id="k-msg-10"></div>
           <div class="k-res" id="k-res-10">K = —</div>
           <div class="k-stats" id="k-stats-10"></div>
@@ -769,8 +770,8 @@ body.light .toggle-track::after{background:#fffdf8}
         <div class="k-card">
           <div class="k-card-mult">×1</div>
           <div class="k-card-bits">11</div>
-          <button class="k-btn" id="k-btn-11" onclick="startKCal('11')" disabled>Calibrar</button>
-          <div class="k-hint" id="k-hint-11">R sug. ≈ —</div>
+          <button class="k-btn" id="k-btn-11" onclick="startKCal('11')" disabled>Calibrate</button>
+          <div class="k-hint" id="k-hint-11">Sugg. R ≈ —</div>
           <div class="k-msg" id="k-msg-11"></div>
           <div class="k-res" id="k-res-11">K = —</div>
           <div class="k-stats" id="k-stats-11"></div>
@@ -784,19 +785,19 @@ body.light .toggle-track::after{background:#fffdf8}
   <!-- SEND -->
   <div id="send-row" style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
     <div style="display:flex;flex-direction:column;align-items:center;background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 16px;min-width:96px">
-      <!-- En "Pulso old" este contador NO son ciclos sino PULSOS del tren (una
-           muestra por pulso): setTab() le cambia el rótulo con #cycles-label. -->
-      <span id="cycles-label" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Ciclos</span>
+      <!-- In "Pulso old" this counter is NOT cycles but PULSES in the train (one
+           sample per pulse): setTab() changes its label via #cycles-label. -->
+      <span id="cycles-label" style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Cycles</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button onclick="changeCycles(-1)" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text);width:26px;height:26px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
         <span id="cycles-val" style="font-family:var(--display);font-size:36px;color:#fff;min-width:46px;text-align:center;cursor:text" contenteditable="true">1</span>
         <button onclick="changeCycles(1)" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text);width:26px;height:26px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">+</button>
       </div>
     </div>
-    <!-- Puntos/ciclo: no aplica a "Pulso old" (allí hay exactamente una muestra
-         por pulso, NPTS se ignora), así que setTab() esconde este bloque. -->
+    <!-- Points/cycle: doesn't apply to "Pulso old" (there is exactly one sample
+         per pulse there, NPTS is ignored), so setTab() hides this block. -->
     <div id="points-box" style="display:flex;flex-direction:column;align-items:center;background:var(--s1);border:1px solid var(--border);border-radius:9px;padding:10px 16px;min-width:96px">
-      <span style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Puntos/ciclo</span>
+      <span style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">Points/cycle</span>
       <div style="display:flex;align-items:center;gap:6px">
         <button onclick="changePoints(-1)" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text);width:26px;height:26px;cursor:pointer;font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center">−</button>
         <span id="points-val" style="font-family:var(--display);font-size:36px;color:#fff;min-width:46px;text-align:center;cursor:text" contenteditable="true">512</span>
@@ -804,7 +805,7 @@ body.light .toggle-track::after{background:#fffdf8}
       </div>
     </div>
     <button class="btn-send sin" id="btn-send" onclick="sendParams()" disabled style="flex:1;margin-bottom:0">
-      ↑ Empezar medida con señal sinusoidal
+      ↑ Start measurement with sine signal
     </button>
   </div>
 
@@ -812,18 +813,19 @@ body.light .toggle-track::after{background:#fffdf8}
   <div class="cfg-panel" id="web-panel" style="display:none">
     <div class="cfg-big-title">Web</div>
 
-    <!-- TOGGLE MODO CLARO/OSCURO -->
+    <!-- LIGHT/DARK MODE TOGGLE -->
     <div class="toggle-row">
-      <span class="toggle-label">Modo claro</span>
+      <span class="toggle-label">Light mode</span>
+
       <label class="toggle">
         <input type="checkbox" id="toggle-light-cfg" onchange="setLight(this.checked)">
         <div class="toggle-track"></div>
       </label>
     </div>
 
-    <!-- TOGGLE ANIMACIÓN -->
+    <!-- ANIMATION TOGGLE -->
     <div class="toggle-row">
-      <span class="toggle-label">Animación de señal</span>
+      <span class="toggle-label">Signal animation</span>
       <label class="toggle">
         <input type="checkbox" id="toggle-anim" checked onchange="setAnim(this.checked)">
         <div class="toggle-track"></div>
@@ -836,13 +838,13 @@ body.light .toggle-track::after{background:#fffdf8}
   <div class="cfg-panel" id="debug-panel" style="display:none">
     <div class="cfg-big-title">Debug</div>
     <div class="dbg-desc" style="padding:14px 16px 4px;font-size:12.5px;color:var(--dim);line-height:1.7">
-      Osciloscopio de CH0 (V01, medida real vía ADC): manda capturas cortas reales en bucle (igual que "Empezar medida", pero pequeñas), así que si desconectas el DAC/AO verás la lectura real, no un valor inventado. Usa la última señal configurada en Sinusoidal / Triangular / Pulsos.
+      CH0 oscilloscope (V01, real measurement through the ADC): it sends short real captures in a loop (like "Start measurement", but small), so if you disconnect the DAC/AO you'll see the real reading, not a made-up value. It uses the last signal configured in Sine / Triangle / Pulses.
     </div>
     <div class="chart-wrap" style="padding:0 16px">
       <canvas id="scope-canvas" class="sig-canvas" height="200"></canvas>
     </div>
     <div class="toggle-row">
-      <span class="toggle-label">Autoescala (ajusta el rango vertical al mín/máx de cada captura)</span>
+      <span class="toggle-label">Autoscale (fits the vertical range to each capture's min/max)</span>
       <label class="toggle">
         <input type="checkbox" id="scope-autoscale" checked onchange="setScopeAutoScale(this.checked)">
         <div class="toggle-track"></div>
@@ -850,47 +852,47 @@ body.light .toggle-track::after{background:#fffdf8}
     </div>
     <div class="params-grid cols3" style="padding:14px 16px 0">
       <div class="param-block dbg-focus dbg-disabled" id="scope-vscale-block">
-        <div class="pb-label">Escala manual</div>
+        <div class="pb-label">Manual scale</div>
         <div class="pb-val-row"><span class="pb-num" id="scope-vscale-v">1.00</span><span class="pb-unit">V</span></div>
         <input type="range" class="dbg-range" id="scope-vscale" min="5" max="200" step="5" value="100" oninput="setScopeVoltScale(this.value)" disabled>
         <div class="pb-bounds"><span>0.05 V</span><span>2.00 V</span></div>
       </div>
       <div class="param-block dbg-focus dbg-disabled" id="scope-voffset-block">
-        <div class="pb-label">Desplazamiento (manual)</div>
+        <div class="pb-label">Offset (manual)</div>
         <div class="pb-val-row"><span class="pb-num" id="scope-voffset-v">0.00</span><span class="pb-unit">V</span></div>
         <input type="range" class="dbg-range" id="scope-voffset" min="-200" max="200" step="5" value="0" oninput="setScopeVoltOffset(this.value)" disabled>
         <div class="pb-bounds"><span>-2.00 V</span><span>+2.00 V</span></div>
       </div>
       <div class="param-block dbg-focus">
-        <div class="pb-label">Velocidad de refresco</div>
-        <div class="pb-val-row"><span class="pb-num" id="scope-refresh-v">Continuo</span></div>
+        <div class="pb-label">Refresh rate</div>
+        <div class="pb-val-row"><span class="pb-num" id="scope-refresh-v">Continuous</span></div>
         <input type="range" class="dbg-range" id="scope-refresh" min="0" max="3" step="1" value="0" oninput="setScopeRefresh(this.value)">
-        <div class="pb-bounds"><span>Continuo</span><span>2 s</span></div>
+        <div class="pb-bounds"><span>Continuous</span><span>2 s</span></div>
       </div>
     </div>
     <div class="toggle-row">
-      <span class="toggle-label">Pausar (congela la última captura)</span>
+      <span class="toggle-label">Pause (freezes the last capture)</span>
       <label class="toggle">
         <input type="checkbox" id="scope-pause" onchange="setScopePaused(this.checked)">
         <div class="toggle-track"></div>
       </label>
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 16px">
-      <button class="btn-send" id="btn-scope" onclick="toggleScopePreview()" disabled style="flex:1;margin-bottom:0">▶ Iniciar osciloscopio</button>
-      <span id="scope-status" style="font-size:12px;color:var(--muted);min-width:70px;text-align:right">detenido</span>
+      <button class="btn-send" id="btn-scope" onclick="toggleScopePreview()" disabled style="flex:1;margin-bottom:0">▶ Start oscilloscope</button>
+      <span id="scope-status" style="font-size:12px;color:var(--muted);min-width:70px;text-align:right">stopped</span>
     </div>
 
     <div style="height:1px;background:var(--border);margin:4px 16px 0"></div>
 
     <div class="dbg-desc" style="padding:14px 16px 4px;font-size:12.5px;color:var(--dim);line-height:1.7">
-      THD (distorsión armónica total) en función de la frecuencia: barre la señal sinusoidal (con la amplitud/offset actuales de la pestaña Sinusoidal) entre 5 Hz y 5000 Hz en escala logarítmica. Para cada frecuencia captura 10 periodos reales de CH0, calcula la FFT, localiza el primer pico (fundamental, índice p) y sus armónicos (n·p), y obtiene THD = √(V₂²+V₃²+...+Vₙ²)/V₁.
+      THD (total harmonic distortion) versus frequency: sweeps the sine signal (with the current amplitude/offset from the Sine tab) from 5 Hz to 5000 Hz on a logarithmic scale. For each frequency it captures 10 real periods of CH0, computes the FFT, finds the first peak (fundamental, index p) and its harmonics (n·p), and obtains THD = √(V₂²+V₃²+...+Vₙ²)/V₁.
     </div>
     <div class="chart-wrap" style="padding:0 16px">
       <canvas id="thd-canvas" class="sig-canvas" height="200"></canvas>
     </div>
     <div style="display:flex;align-items:center;gap:10px;padding:14px 16px 16px">
-      <button class="btn-send" id="btn-thd" onclick="toggleThdSweep()" disabled style="flex:1;margin-bottom:0">▶ Calcular THD vs frecuencia</button>
-      <span id="thd-status" style="font-size:12px;color:var(--muted);min-width:90px;text-align:right">detenido</span>
+      <button class="btn-send" id="btn-thd" onclick="toggleThdSweep()" disabled style="flex:1;margin-bottom:0">▶ Compute THD vs frequency</button>
+      <span id="thd-status" style="font-size:12px;color:var(--muted);min-width:90px;text-align:right">stopped</span>
     </div>
   </div>
 
@@ -899,8 +901,8 @@ body.light .toggle-track::after{background:#fffdf8}
     <div class="log-hdr">
       <span class="log-title">▸ log serial</span>
       <div class="log-acts">
-        <button class="log-btn" onclick="copyLog()">copiar</button>
-        <button class="log-btn" onclick="clearLog()">limpiar</button>
+        <button class="log-btn" onclick="copyLog()">copy</button>
+        <button class="log-btn" onclick="clearLog()">clear</button>
       </div>
     </div>
     <div class="log-body" id="log"></div>
@@ -916,32 +918,32 @@ body.light .toggle-track::after{background:#fffdf8}
   <div id="res-block-wrap" style="margin-top:24px">
   <div class="res-block">
     <div class="res-block-hdr">
-      <span class="res-block-title">▸ Resultados de adquisición</span>
+      <span class="res-block-title">▸ Acquisition results</span>
       <div style="display:flex;align-items:center;gap:12px">
-        <button class="log-btn btn-export-green" id="btn-export-xlsx" onclick="exportResultsXlsx()" disabled style="margin-right:24px">Exporta a Excel</button>
-        <span class="res-block-meta" id="res-meta">Sin datos</span>
+        <button class="log-btn btn-export-green" id="btn-export-xlsx" onclick="exportResultsXlsx()" disabled style="margin-right:24px">Export to Excel</button>
+        <span class="res-block-meta" id="res-meta">No data</span>
       </div>
     </div>
     <div id="res-legend" class="res-legend" style="display:none">
       <div class="res-legend-dac">
         <div class="res-legend-dash"></div>
-        <span>DAC (entrada)</span>
+        <span>DAC (input)</span>
       </div>
     </div>
     <div id="res-empty" class="res-empty">
-      Los resultados aparecerán aquí al finalizar la ejecución de la señal.
+      The results will appear here when the signal has finished running.
     </div>
     <div id="res-charts" style="display:none">
       <div class="res-chart-wrap">
-        <div class="res-chart-lbl" style="color:#a78bfa">Curva I-V — Característica del memristor</div>
+        <div class="res-chart-lbl" style="color:#a78bfa">I-V curve — Memristor characteristic</div>
         <canvas id="cv-iv" class="res-cv" height="130"></canvas>
       </div>
       <div class="res-chart-wrap">
-        <div class="res-chart-lbl" style="color:#60a5fa">CH0 — Tensión entrada memristor (V01)</div>
+        <div class="res-chart-lbl" style="color:#60a5fa">CH0 — Memristor input voltage (V01)</div>
         <canvas id="cv-ch0" class="res-cv" height="130"></canvas>
       </div>
       <div class="res-chart-wrap">
-        <div class="res-chart-lbl" style="color:#f59e0b">CH1 — Tensión salida memristor (V02)</div>
+        <div class="res-chart-lbl" style="color:#f59e0b">CH1 — Memristor output voltage (V02)</div>
         <canvas id="cv-ch1" class="res-cv" height="130"></canvas>
       </div>
     </div>
@@ -953,30 +955,30 @@ body.light .toggle-track::after{background:#fffdf8}
 let port = null, writer = null, reader = null, connected = false;
 let readLoopActive = false;
 let activeTab = 'sin';
-let lastSignalTab = 'sin';  // última pestaña sin/tri/pul elegida (el osciloscopio la usa desde 'dbg')
-let measureTab    = 'sin';  // tipo de señal de la última medida enviada (para reconstruir el DAC en resultados)
+let lastSignalTab = 'sin';  // last sin/tri/pul tab chosen (the oscilloscope uses it from 'dbg')
+let measureTab    = 'sin';  // signal type of the last measurement sent (to rebuild the DAC in the results)
 let debugUnlocked = false;
 
-const SCOPE_NCYC = 3;    // ciclos por captura (fijo, pensado para previsualizar rápido)
-const SCOPE_NPTS = 170;  // puntos/ciclo por captura (máximo posible para 3 ciclos: 512/3)
-const SCOPE_REFRESH_STEPS = [0, 250, 750, 2000];  // ms de espera entre capturas
+const SCOPE_NCYC = 3;    // cycles per capture (fixed, meant for a quick preview)
+const SCOPE_NPTS = 170;  // points/cycle per capture (the maximum possible for 3 cycles: 512/3)
+const SCOPE_REFRESH_STEPS = [0, 250, 750, 2000];  // ms to wait between captures
 
-let scopePreviewActive = false;  // el bucle de capturas está encendido
-let scopeCaptureTimer  = null;   // setTimeout hacia la siguiente captura
+let scopePreviewActive = false;  // the capture loop is running
+let scopeCaptureTimer  = null;   // setTimeout for the next capture
 let scopePaused        = false;
 let scopeRefreshMs     = 0;
-let scopeAutoScale     = true;   // true = el eje se ajusta al mín/máx de cada captura
-let scopeVoltScale     = 1.0;    // modo manual: semirrango (V) alrededor del centro de los datos
-let scopeVoltOffset    = 0;      // modo manual: desplazamiento (V) del centro respecto al de los datos
-let scopeLastCapture   = null;   // [{t, v}, ...] de la última captura recibida
+let scopeAutoScale     = true;   // true = the axis fits each capture's min/max
+let scopeVoltScale     = 1.0;    // manual mode: half-range (V) around the centre of the data
+let scopeVoltOffset    = 0;      // manual mode: offset (V) of the centre relative to the data's centre
+let scopeLastCapture   = null;   // [{t, v}, ...] of the last capture received
 
-const THD_FMIN  = 5;     // Hz, extremo inferior del barrido
-const THD_FMAX  = 5000;  // Hz, extremo superior del barrido
-const THD_STEPS = 24;    // nº de frecuencias del barrido (repartidas log-uniformemente)
-const THD_NCYC  = 10;    // periodos completos capturados por frecuencia (para resolver bien la fundamental en la FFT)
-const THD_NPTS  = Math.floor(512 / THD_NCYC);  // puntos/ciclo (limitado por MAX_SAMPLES=512 del Arduino)
+const THD_FMIN  = 5;     // Hz, lower end of the sweep
+const THD_FMAX  = 5000;  // Hz, upper end of the sweep
+const THD_STEPS = 24;    // number of frequencies in the sweep (log-uniformly spaced)
+const THD_NCYC  = 10;    // whole periods captured per frequency (to resolve the fundamental well in the FFT)
+const THD_NPTS  = Math.floor(512 / THD_NCYC);  // points/cycle (limited by the Arduino's MAX_SAMPLES=512)
 
-// genera las frecuencias del barrido repartidas logaritmicamente
+// generates the sweep frequencies, logarithmically spaced
 function logSpace(fMin, fMax, n){
   const lo = Math.log10(fMin), hi = Math.log10(fMax);
   const out = [];
@@ -985,17 +987,17 @@ function logSpace(fMin, fMax, n){
 }
 const THD_FREQS = logSpace(THD_FMIN, THD_FMAX, THD_STEPS);
 
-let thdSweepActive = false;   // el barrido está en marcha
-let thdSweepIndex  = 0;       // índice de la frecuencia que se está midiendo ahora
-let thdResults     = [];      // [{freq, thd}, ...] acumulados del barrido actual
+let thdSweepActive = false;   // the sweep is running
+let thdSweepIndex  = 0;       // index of the frequency being measured now
+let thdResults     = [];      // [{freq, thd}, ...] accumulated in the current sweep
 
 let pending      = null;   // null | 'measure' | 'scope' | 'thd' | 'kcal' | 'discard'
 let pendingTimer = null;
 
-// manda una trama y espera su respuesta, con una sola captura en el aire
+// sends a frame and waits for its reply, with only one capture in flight
 async function sendCapture(frame, kind, timeoutMs){
   if (!writer || pending){
-    addLog('Hay una captura en curso: espera a que termine', 'warn');
+    addLog('A capture is in progress: wait for it to finish', 'warn');
     return false;
   }
   pending = kind;
@@ -1005,31 +1007,31 @@ async function sendCapture(frame, kind, timeoutMs){
     await writer.write(new TextEncoder().encode(frame + '\n'));
     return true;
   } catch(e){
-    addLog('Error al enviar: ' + e.message, 'err');
+    addLog('Error sending: ' + e.message, 'err');
     clearPending();
     return false;
   }
 }
 
-// libera la linea y cancela el temporizador de espera
+// frees the line and cancels the wait timer
 function clearPending(){
   pending = null;
   if (pendingTimer){ clearTimeout(pendingTimer); pendingTimer = null; }
   updateActionButtons();
 }
 
-// se dispara cuando el Arduino no contesta a tiempo
+// fires when the Arduino doesn't reply in time
 function onPendingTimeout(){
   const kind = pending;
   pendingTimer = null;
   clearPending();
-  addLog('El Arduino no ha respondido (' + kind + '): se libera la línea', 'warn');
+  addLog('The Arduino did not reply (' + kind + '): freeing the line', 'warn');
   if (kind === 'thd' && thdSweepActive){ thdSweepIndex++; requestThdCapture(); }
   else if (kind === 'scope' && scopePreviewActive) requestScopeCapture();
-  else if (kind === 'kcal') abortKCal('sin respuesta del Arduino');
+  else if (kind === 'kcal') abortKCal('no reply from the Arduino');
 }
 
-// cuanto hay que esperar, segun lo que dure la senal
+// how long to wait, depending on how long the signal lasts
 function captureTimeoutMs(tab, ncyc){
   const durMs = tab === 'pul' ? ncyc * sv('p-gap')
               : tab === 'old' ? ncyc * sv('o-t2')
@@ -1037,7 +1039,7 @@ function captureTimeoutMs(tab, ncyc){
   return durMs * 2 + 5000;
 }
 
-// habilita o bloquea los botones segun el estado de la conexion
+// enables or disables the buttons depending on the connection state
 function updateActionButtons(){
   document.getElementById('btn-send').disabled  = !connected || !!pending;
   document.getElementById('btn-scope').disabled = !connected || (!!pending && !scopePreviewActive);
@@ -1048,7 +1050,7 @@ function updateActionButtons(){
   });
 }
 
-// calcula la distorsion armonica de una captura por DFT
+// computes the harmonic distortion of a capture with a DFT
 function computeThd(samples){
   const N = samples.length;
   if (N < 2) return null;
@@ -1082,43 +1084,44 @@ function computeThd(samples){
   return Math.sqrt(sumSq) / V1 * 100;  // %
 }
 
-// arranca o para el barrido de distorsion
+// starts or stops the distortion sweep
 function toggleThdSweep(){
-  thdSweepActive ? stopThdSweep('detenido') : startThdSweep();
+  thdSweepActive ? stopThdSweep('stopped') : startThdSweep();
 }
 
-// prepara el barrido y lanza la primera frecuencia
+// prepares the sweep and launches the first frequency
 function startThdSweep(){
   if (!connected || thdSweepActive) return;
-  stopScopePreview();  // no mezclar con el bucle del osciloscopio
+  stopScopePreview();  // don't mix with the oscilloscope loop
   thdSweepActive = true;
   thdResults = [];
   thdSweepIndex = 0;
-  document.getElementById('btn-thd').textContent = '■ Detener barrido';
+  document.getElementById('btn-thd').textContent = '■ Stop sweep';
   drawThdChart();
-  addLog('Barrido de THD iniciado (' + THD_STEPS + ' frecuencias, ' + THD_NCYC + ' periodos c/u)', 'ok');
+  addLog('THD sweep started (' + THD_STEPS + ' frequencies, ' + THD_NCYC + ' periods each)', 'ok');
   requestThdCapture();
 }
 
-// detiene el barrido y deja la linea libre
+// stops the sweep and leaves the line free
 function stopThdSweep(statusText){
   if (pending === 'thd') pending = 'discard';
   thdSweepActive = false;
-  document.getElementById('btn-thd').textContent = '▶ Calcular THD vs frecuencia';
+  document.getElementById('btn-thd').textContent = '▶ Compute THD vs frequency';
   document.getElementById('thd-status').textContent = statusText;
   updateActionButtons();
 }
 
-// pide al Arduino la captura de la frecuencia actual
+// asks the Arduino for the capture at the current frequency
 async function requestThdCapture(){
   if (!thdSweepActive || !connected) return;
   if (thdSweepIndex >= THD_FREQS.length) {
-    stopThdSweep('completo');
-    addLog('Barrido de THD completado (' + thdResults.length + '/' + THD_STEPS + ' puntos)', 'ok');
+    stopThdSweep('complete');
+    addLog('THD sweep completed (' + thdResults.length + '/' + THD_STEPS + ' points)', 'ok');
+
     return;
   }
-  if (pending) { setTimeout(requestThdCapture, 250); return; }  // línea ocupada: reintenta enseguida
-  document.getElementById('thd-status').textContent = 'midiendo ' + (thdSweepIndex + 1) + '/' + THD_STEPS;
+  if (pending) { setTimeout(requestThdCapture, 250); return; }  // line busy: retry shortly
+  document.getElementById('thd-status').textContent = 'measuring ' + (thdSweepIndex + 1) + '/' + THD_STEPS;
   const f   = THD_FREQS[thdSweepIndex];
   const amp = (sv('s-amp') / 20).toFixed(2);
   const off = (sv('s-off') / 20).toFixed(2);
@@ -1127,7 +1130,7 @@ async function requestThdCapture(){
   if (!ok) stopThdSweep('error');
 }
 
-// procesa la respuesta y guarda el punto de distorsion
+// processes the reply and stores the distortion point
 function onThdCapture(line){
   const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
   const samples = parts.map(p => {
@@ -1138,16 +1141,16 @@ function onThdCapture(line){
   const f = THD_FREQS[thdSweepIndex];
   if (thd != null) {
     thdResults.push({ freq: f, thd });
-    addLog('THD @ ' + f.toFixed(1) + ' Hz: ' + thd.toFixed(2) + '% (' + samples.length + ' muestras)', 'info');
+    addLog('THD @ ' + f.toFixed(1) + ' Hz: ' + thd.toFixed(2) + '% (' + samples.length + ' samples)', 'info');
   } else {
-    addLog('THD @ ' + f.toFixed(1) + ' Hz: no se pudo calcular (señal plana o insuficiente)', 'warn');
+    addLog('THD @ ' + f.toFixed(1) + ' Hz: could not be computed (flat or insufficient signal)', 'warn');
   }
   thdSweepIndex++;
   drawThdChart();
   requestThdCapture();
 }
 
-// dibuja la curva de distorsion frente a frecuencia
+// draws the distortion vs frequency curve
 function drawThdChart(){
   const canvas = document.getElementById('thd-canvas');
   const dpr = window.devicePixelRatio || 1;
@@ -1171,7 +1174,7 @@ function drawThdChart(){
   const logMin = Math.log10(THD_FMIN), logMax = Math.log10(THD_FMAX);
   const xFromF = f => cx + (Math.log10(f) - logMin) / (logMax - logMin) * cw;
 
-  let yMax = 5;  // % mínimo del eje Y, para que un THD ~0 no se vea todo pegado arriba
+  let yMax = 5;  // minimum % of the Y axis, so a THD of ~0 doesn't look stuck to the top
   thdResults.forEach(r => { if (r.thd > yMax) yMax = r.thd; });
   yMax *= 1.2;
   const yFromThd = v => cy + ch - (v / yMax) * ch;
@@ -1227,14 +1230,14 @@ function drawThdChart(){
   ctx.fillText('THD: ' + last.thd.toFixed(2) + '% @ ' + last.freq.toFixed(1) + ' Hz', cx + cw - 170, cy + 12);
 }
 
-// fija la escala vertical del osciloscopio
+// sets the oscilloscope's vertical scale
 function setScopeVoltScale(raw){
   scopeVoltScale = raw / 100;
   document.getElementById('scope-vscale-v').textContent = scopeVoltScale.toFixed(2);
   drawScope();
 }
 
-// desplaza verticalmente la traza del osciloscopio
+// shifts the oscilloscope trace vertically
 function setScopeVoltOffset(raw){
   scopeVoltOffset = raw / 100;
   document.getElementById('scope-voffset-v').textContent =
@@ -1242,7 +1245,7 @@ function setScopeVoltOffset(raw){
   drawScope();
 }
 
-// activa o desactiva el ajuste automatico de escala
+// turns automatic scaling on or off
 function setScopeAutoScale(auto){
   scopeAutoScale = auto;
   document.getElementById('scope-vscale').disabled = auto;
@@ -1252,22 +1255,22 @@ function setScopeAutoScale(auto){
   drawScope();
 }
 
-// elige cada cuanto se repite la captura
+// chooses how often the capture repeats
 function setScopeRefresh(idx){
   scopeRefreshMs = SCOPE_REFRESH_STEPS[idx];
   document.getElementById('scope-refresh-v').textContent =
-    scopeRefreshMs === 0 ? 'Continuo' : (scopeRefreshMs / 1000) + ' s';
+    scopeRefreshMs === 0 ? 'Continuous' : (scopeRefreshMs / 1000) + ' s';
 }
 
-// congela la ultima captura
+// freezes the last capture
 function setScopePaused(paused){
   scopePaused = paused;
   document.getElementById('scope-status').textContent =
-    !scopePreviewActive ? 'detenido' : (paused ? 'en pausa' : 'en directo');
+    !scopePreviewActive ? 'stopped' : (paused ? 'paused' : 'live');
   if (!paused && scopePreviewActive) requestScopeCapture();
 }
 
-// arma la trama corta que usa el osciloscopio
+// builds the short frame the oscilloscope uses
 function buildScopeSignalFrame(){
   const t = lastSignalTab;
   const cfg = `,${buildCfgFrame()},NCYC:${SCOPE_NCYC},NPTS:${SCOPE_NPTS}`;
@@ -1292,41 +1295,41 @@ function buildScopeSignalFrame(){
   }
 }
 
-// hace visible la pestana de depuracion
+// makes the debug tab visible
 function unlockDebugTab(){
-  if (debugUnlocked) { addLog('Modo debug ya estaba activado', 'info'); return; }
+  if (debugUnlocked) { addLog('Debug mode was already enabled', 'info'); return; }
   debugUnlocked = true;
   document.getElementById('tab-dbg').style.display = '';
   document.querySelector('.toolbar').style.gridTemplateColumns = 'repeat(6,1fr)';
-  addLog('Modo debug activado', 'ok');
+  addLog('Debug mode enabled', 'ok');
 }
 let numCycles = 1;
-let numPoints = 512;   // Puntos por ciclo (máximo dinámico = 512 / numCycles)
+let numPoints = 512;   // Points per cycle (dynamic maximum = 512 / numCycles)
 
-let animPhase  = 0;       // fase que avanza con el tiempo (0-1)
-let animFrame  = null;    // id del requestAnimationFrame activo
-let animLast   = null;    // timestamp del último frame
+let animPhase  = 0;       // phase that advances with time (0-1)
+let animFrame  = null;    // id of the active requestAnimationFrame
+let animLast   = null;    // timestamp of the last frame
 
 const MAX_SAMPLES = 512;
 
-// dice si la pestana activa es la de pulsos por EC
+// tells whether the active tab is the EC pulses one
 function oldCounters(){
   const t = (activeTab === 'sin' || activeTab === 'tri' || activeTab === 'pul' || activeTab === 'old')
             ? activeTab : lastSignalTab;
   return t === 'old';
 }
 
-// puntos por ciclo que caben en el buffer
+// points per cycle that fit in the buffer
 function maxPointsForCycles(){
   return Math.max(1, Math.floor(MAX_SAMPLES / numCycles));
 }
 
-// ciclos maximos segun la senal activa
+// maximum cycles for the active signal
 function maxCyclesNow(){
   return oldCounters() ? MAX_SAMPLES : Infinity;
 }
 
-// sube o baja el contador de ciclos
+// raises or lowers the cycle counter
 function changeCycles(delta){
   numCycles = Math.min(maxCyclesNow(), Math.max(1, numCycles + delta));
   document.getElementById('cycles-val').textContent = numCycles;
@@ -1340,10 +1343,10 @@ function changeCycles(delta){
   upd();
 }
 
-// ajusta los contadores al cambiar de pestana
+// adjusts the counters when switching tabs
 function syncCountersForTab(){
   const isOld = oldCounters();
-  document.getElementById('cycles-label').textContent = isOld ? 'Nº de pulsos' : 'Ciclos';
+  document.getElementById('cycles-label').textContent = isOld ? 'No. of pulses' : 'Cycles';
   document.getElementById('points-box').style.display = isOld ? 'none' : 'flex';
   if (isOld) {
     if (numCycles > MAX_SAMPLES) numCycles = MAX_SAMPLES;
@@ -1355,7 +1358,7 @@ function syncCountersForTab(){
   document.getElementById('cycles-val').textContent = numCycles;
 }
 
-// sube o baja el contador de puntos por ciclo
+// raises or lowers the points-per-cycle counter
 function changePoints(delta){
   const maxP = maxPointsForCycles();
   numPoints = Math.min(maxP, Math.max(1, numPoints + delta));
@@ -1364,15 +1367,15 @@ function changePoints(delta){
 }
 
 let cfgMem = 0;   // 0 = M1, 1 = M2
-let cfgDir = 0;   // 0 = positiva, 1 = negativa
+let cfgDir = 0;   // 0 = positive, 1 = negative
 let cfgInt = '11'; // '00','01','10','11'
 
-// cambia de pestana y actualiza la interfaz
+// switches tab and updates the interface
 function setTab(t) {
   activeTab = t;
   if (t === 'sin' || t === 'tri' || t === 'pul' || t === 'old') lastSignalTab = t;
-  if (t !== 'dbg' && scopePreviewActive) stopScopePreview();  // salir de Debug para el osciloscopio
-  if (t !== 'dbg' && thdSweepActive) stopThdSweep('detenido');  // salir de Debug para el barrido de THD
+  if (t !== 'dbg' && scopePreviewActive) stopScopePreview();  // leaving Debug stops the oscilloscope
+  if (t !== 'dbg' && thdSweepActive) stopThdSweep('stopped');  // leaving Debug stops the THD sweep
   ['sin','tri','pul','old','cfg','dbg'].forEach(k => {
     document.querySelector('.tab.'+k).classList.toggle('active', k===t);
     const p = document.getElementById('params-'+k);
@@ -1388,24 +1391,24 @@ function setTab(t) {
   document.querySelector('.panel').style.display      = (isCfg || isDbg) ? 'none'  : 'block';
 
   updateOldLock();
-  syncCountersForTab();   // "Ciclos" pasa a ser "Nº de pulsos" en el panel OLD
+  syncCountersForTab();   // "Cycles" becomes "No. of pulses" in the OLD panel
 
-  const names = {sin:'sinusoidal',tri:'triangular',pul:'de pulsos',old:'de pulso old (EC)'};
+  const names = {sin:'sine',tri:'triangle',pul:'pulse',old:'old pulse (EC)'};
   const btn     = document.getElementById('btn-send');
   const sendRow = document.getElementById('send-row');
   sendRow.style.display = (isCfg || isDbg) ? 'none' : 'flex';
   if(!isCfg && !isDbg){
     btn.className = 'btn-send ' + t;
-    btn.textContent = '↑ Empezar medida con señal ' + (names[t] || '');
+    btn.textContent = '↑ Start measurement with ' + (names[t] || '') + ' signal';
     btn.disabled = !connected;
     drawChart(); upd();
   }
 }
 
-// dice si el bloqueo del modo EC esta activo
+// tells whether the EC mode lock is active
 function oldLockActive(){ return activeTab === 'old'; }
 
-// bloquea o desbloquea las demas senales
+// locks or unlocks the other signals
 function updateOldLock(){
   const locked = oldLockActive();
   ['sin','tri','pul'].forEach(k => {
@@ -1414,28 +1417,28 @@ function updateOldLock(){
   });
 }
 
-// lee el valor de un deslizador
+// reads a slider's value
 function sv(id){ return parseFloat(document.getElementById(id).value); }
-// pasa el valor del deslizador a voltios
+// converts the slider value to volts
 function toV(raw){ return (raw/12).toFixed(2); }
-// pasa cuentas del ADC a voltios
+// converts ADC counts to volts
 function rawToV(r){ return (r*10/120).toFixed(2); }
 
-// selecciona el memristor activo
+// selects the active memristor
 function selectMem(v){
   cfgMem = v;
   document.getElementById('mem-m1').className = 'mem-card' + (v===0?' active-m1':'');
   document.getElementById('mem-m2').className = 'mem-card' + (v===1?' active-m2':'');
   updateCfgUI();
 }
-// selecciona el sentido de la corriente
+// selects the current direction
 function selectDir(v){
   cfgDir = v;
   document.getElementById('dir-pos').className = 'dir-card' + (v===0?' active-pos':'');
   document.getElementById('dir-neg').className = 'dir-card' + (v===1?' active-neg':'');
   updateCfgUI();
 }
-// selecciona el espejo de corriente
+// selects the current mirror
 function selectInt(v){
   cfgInt = v;
   if (resCycles.length > 0) redrawAll();
@@ -1444,11 +1447,12 @@ function selectInt(v){
   });
   updateCfgUI();
 }
-// refresca las tarjetas del panel de configuracion
+// refreshes the cards in the config panel
+
 function updateCfgUI(){
   const setBit = (id, val) => {
     const el = document.getElementById(id);
-    if (!el) return;  // el display de bits ya no está en el HTML
+    if (!el) return;  // the bit display is no longer in the HTML
     el.textContent = val;
     el.className = 'bit-box ' + (val==='1' ? 'b1' : 'b0');
   };
@@ -1456,12 +1460,12 @@ function updateCfgUI(){
   setBit('bit-int0', cfgInt[0]);
   setBit('bit-int1', cfgInt[1]);
 }
-// arma la parte comun de la trama, MEM e INT
+// builds the common part of the frame, MEM and INT
 function buildCfgFrame(){
   return `MEM:${cfgMem},INT:${cfgInt}`;
 }
 
-// recalcula la trama y redibuja la previsualizacion
+// recomputes the frame and redraws the preview
 function upd(){
   if(activeTab==='sin'){
     const freq = sv('s-freq');
@@ -1499,7 +1503,7 @@ function upd(){
   drawChart();
 }
 
-// arma la trama completa de la senal activa
+// builds the full frame for the active signal
 function buildFrame(tabOverride){
   const t = tabOverride || activeTab;
   const cfg = `,${buildCfgFrame()},NCYC:${numCycles},NPTS:${numPoints}`;
@@ -1528,17 +1532,17 @@ function buildFrame(tabOverride){
   }
 }
 
-// decide cuantos ciclos mostrar en la previsualizacion
+// decides how many cycles to show in the preview
 function previewCycles(freq){
   return Math.max(1.5, Math.min(40, 1.5 + (freq - 1) * 0.39));
 }
 
-// dibuja la previsualizacion de la senal configurada
+// draws the preview of the configured signal
 function drawChart(phaseOffset = 0){
   const canvas = document.getElementById('sig-canvas');
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.offsetWidth  || 660;
-  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  const H = canvas.offsetHeight || 200;   // real on-screen height, so the drawing isn't stretched
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
@@ -1585,15 +1589,15 @@ function drawChart(phaseOffset = 0){
 
   if(activeTab==='sin'){
     const freq  = sv('s-freq');
-    let   amp_V = sv('s-amp') / 20;   // V reales (0 a 1V)
-    let   off_V = sv('s-off') / 20;   // V reales (-1 a +1V)
+    let   amp_V = sv('s-amp') / 20;   // real V (0 to 1V)
+    let   off_V = sv('s-off') / 20;   // real V (-1 to +1V)
     if (Math.abs(off_V) + amp_V > 1) amp_V = Math.max(0, 1 - Math.abs(off_V));
     const T_WIN = previewCycles(freq) / freq;   // s
     winMs = T_WIN * 1000;
     for(let i=0;i<=N;i++){
       const t = (i/N) * T_WIN;
       const v_V = off_V + amp_V * Math.sin(t * freq * 2 * Math.PI - phaseOffset * 2 * Math.PI);
-      const norm = v_V / 1.0;          // normalizado a ±1 dentro del rango físico ±1V
+      const norm = v_V / 1.0;          // normalised to ±1 within the physical ±1V range
       const px = cx + i;
       const py = cy + ch/2 - norm * ch * 0.41;
       i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
@@ -1661,59 +1665,59 @@ function drawChart(phaseOffset = 0){
   ctx.font = '10px "IBM Plex Mono", monospace';
   ctx.textAlign = 'right';
   const winLbl = winMs >= 1000 ? (winMs / 1000).toFixed(1) + ' s' : Math.round(winMs) + ' ms';
-  ctx.fillText('ventana: ' + winLbl, W - pad.r - 2, H - 3);
+  ctx.fillText('window: ' + winLbl, W - pad.r - 2, H - 3);
   ctx.textAlign = 'left';
 }
 
-// arranca o para el osciloscopio
+// starts or stops the oscilloscope
 function toggleScopePreview(){
   if (scopePreviewActive) { stopScopePreview(); return; }
   if (!connected) return;
-  if (thdSweepActive) stopThdSweep('detenido');  // no mezclar con el barrido de THD
+  if (thdSweepActive) stopThdSweep('stopped');  // don't mix with the THD sweep
   scopePreviewActive = true;
   scopePaused = false;
   document.getElementById('scope-pause').checked = false;
-  document.getElementById('btn-scope').textContent = '■ Detener osciloscopio';
-  document.getElementById('scope-status').textContent = 'en directo';
-  addLog('Osciloscopio: iniciado (refresco=' + (scopeRefreshMs || 'continuo') + ')', 'info');
+  document.getElementById('btn-scope').textContent = '■ Stop oscilloscope';
+  document.getElementById('scope-status').textContent = 'live';
+  addLog('Oscilloscope: started (refresh=' + (scopeRefreshMs || 'continuous') + ')', 'info');
   requestScopeCapture();
 }
 
-// detiene el osciloscopio
+// stops the oscilloscope
 function stopScopePreview(){
   const habiaEnVuelo = pending === 'scope';
   if (habiaEnVuelo) pending = 'discard';
   scopePreviewActive = false;
   if (scopeCaptureTimer) { clearTimeout(scopeCaptureTimer); scopeCaptureTimer = null; }
-  document.getElementById('btn-scope').textContent = '▶ Iniciar osciloscopio';
-  document.getElementById('scope-status').textContent = 'detenido';
+  document.getElementById('btn-scope').textContent = '▶ Start oscilloscope';
+  document.getElementById('scope-status').textContent = 'stopped';
   updateActionButtons();
-  addLog('Osciloscopio: detenido' + (habiaEnVuelo ? ' (quedaba una captura en vuelo, se descarta al llegar)' : ''), 'info');
+  addLog('Oscilloscope: stopped' + (habiaEnVuelo ? ' (a capture was still in flight; it will be discarded when it arrives)' : ''), 'info');
 }
 
-// pide una captura corta al Arduino
+// asks the Arduino for a short capture
 async function requestScopeCapture(){
   if (!scopePreviewActive || scopePaused || !connected) return;
-  if (pending) {  // línea ocupada: reintenta enseguida
-    addLog('Osciloscopio: línea ocupada (' + pending + '), reintento en 250 ms', 'info');
+  if (pending) {  // line busy: retry shortly
+    addLog('Oscilloscope: line busy (' + pending + '), retrying in 250 ms', 'info');
     clearTimeout(scopeCaptureTimer);
     scopeCaptureTimer = setTimeout(requestScopeCapture, 250);
     return;
   }
   const frame = buildScopeSignalFrame();
-  addLog('Osciloscopio: pidiendo captura → ' + frame, 'info');
+  addLog('Oscilloscope: requesting capture → ' + frame, 'info');
   const ok = await sendCapture(frame, 'scope', captureTimeoutMs(lastSignalTab, SCOPE_NCYC));
   if (!ok) stopScopePreview();
 }
 
-// recibe la captura y la manda a dibujar
+// receives the capture and sends it to be drawn
 function onScopeCapture(line){
   const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
   scopeLastCapture = parts.map(p => {
     const [t, ch0] = p.split(',').map(Number);
     return { t, v: ch0 };
   });
-  addLog('Osciloscopio: captura recibida (' + scopeLastCapture.length + ' muestras)', 'info');
+  addLog('Oscilloscope: capture received (' + scopeLastCapture.length + ' samples)', 'info');
   drawScope();
   if (scopePreviewActive && !scopePaused) {
     clearTimeout(scopeCaptureTimer);
@@ -1721,12 +1725,12 @@ function onScopeCapture(line){
   }
 }
 
-// dibuja la traza del osciloscopio con sus ejes y sus valores
+// draws the oscilloscope trace with its axes and values
 function drawScope(){
   const canvas = document.getElementById('scope-canvas');
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.offsetWidth  || 660;
-  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  const H = canvas.offsetHeight || 200;   // real on-screen height, so the drawing isn't stretched
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
@@ -1758,7 +1762,7 @@ function drawScope(){
 
   let axisMin, axisMax;
   if (scopeAutoScale && hasData) {
-    const span = Math.max(vPP, 0.02);        // evita un rango nulo con señal plana
+    const span = Math.max(vPP, 0.02);        // avoids a zero range with a flat signal
     const margin = Math.max(span * 0.1, 0.01);
     axisMin = vMin - margin;
     axisMax = vMax + margin;
@@ -1815,7 +1819,7 @@ function drawScope(){
   const stats = [
     'max  ' + (vMax>=0?'+':'') + vMax.toFixed(3) + ' V',
     'min  ' + (vMin>=0?'+':'') + vMin.toFixed(3) + ' V',
-    'med  ' + (vMean>=0?'+':'') + vMean.toFixed(3) + ' V',
+    'mean ' + (vMean>=0?'+':'') + vMean.toFixed(3) + ' V',
     'pp    ' + vPP.toFixed(3) + ' V'
   ];
   ctx.font = '10px "IBM Plex Mono", monospace';
@@ -1827,19 +1831,20 @@ function drawScope(){
   stats.forEach((line, i) => ctx.fillText(line, boxX + 6, boxY + 12 + i*lineH));
 }
 
-// conecta o desconecta segun el estado
+// connects or disconnects depending on the state
+
 async function toggleConn(){
   connected ? await disconnect() : await connect();
 }
 
-// abre el puerto serie y arranca el bucle de lectura
+// opens the serial port and starts the read loop
 async function connect(){
   if(!('serial' in navigator)){
     document.getElementById('warn').style.display='block';
-    addLog('Web Serial API no disponible', 'err'); return;
+    addLog('Web Serial API not available', 'err'); return;
   }
   try {
-    setStatus('connecting','Abriendo selector de puerto...');
+    setStatus('connecting','Opening port selector...');
     document.getElementById('btn-conn').textContent='...';
 
     port = await navigator.serial.requestPort();
@@ -1851,14 +1856,14 @@ async function connect(){
 
     connected = true;
     updateActionButtons();
-    document.getElementById('btn-conn').textContent = 'Desconectar';
+    document.getElementById('btn-conn').textContent = 'Disconnect';
     document.getElementById('btn-conn').classList.add('disc');
-    setStatus('connected','<b>Conectado</b> · 2M baud');
-    addLog('Puerto serie abierto a 2.000.000 baud','ok');
+    setStatus('connected','<b>Connected</b> · 2M baud');
+    addLog('Serial port opened at 2,000,000 baud','ok');
 
   } catch(e) {
     connected = false;
-    document.getElementById('btn-conn').textContent = 'Conectar';
+    document.getElementById('btn-conn').textContent = 'Connect';
     document.getElementById('btn-conn').classList.remove('disc');
     setStatus('error','Error: '+e.message);
     addLog('Error: '+e.message,'err');
@@ -1866,7 +1871,7 @@ async function connect(){
   }
 }
 
-// lee del puerto y trocea por saltos de linea
+// reads from the port and splits on line breaks
 async function startReadLoop(){
   const decoder = new TextDecoder();
   let buffer = '';
@@ -1879,16 +1884,16 @@ async function startReadLoop(){
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // lo que queda sin \n
+      buffer = lines.pop(); // whatever is left without a \n
       if (buffer.length > 20000) {
-        addLog('Buffer de lectura serie desbordado (línea corrupta): se resincroniza', 'warn');
+        addLog('Serial read buffer overflowed (corrupt line): resynchronising', 'warn');
         buffer = '';
       }
       for (const line of lines) {
         const l = line.trim();
         if (!l) continue;
         try { handleSerialLine(l); }
-        catch(e) { addLog('Error procesando línea recibida: ' + e.message, 'err'); }
+        catch(e) { addLog('Error processing received line: ' + e.message, 'err'); }
       }
     }
   } catch(e) {
@@ -1899,7 +1904,7 @@ async function startReadLoop(){
   }
 }
 
-// reparte cada linea recibida segun su prefijo
+// dispatches each received line by its prefix
 function handleSerialLine(l){
   if (l.startsWith('DATA:')) {
     const kind = pending;
@@ -1908,20 +1913,20 @@ function handleSerialLine(l){
     else if (kind === 'scope')   onScopeCapture(l);
     else if (kind === 'kcal')    onKCalCapture(l);
     else if (kind === 'measure') parseResCycle(l);
-    else if (kind === 'discard') addLog('Captura tardía descartada (ya detenida)', 'info');
-    else addLog('DATA inesperada descartada (ninguna captura en curso)', 'warn');
+    else if (kind === 'discard') addLog('Late capture discarded (already stopped)', 'info');
+    else addLog('Unexpected DATA discarded (no capture in progress)', 'warn');
   } else if (l.startsWith('ERR:') && pending) {
     const kind = pending;
     addLog('← ' + l, 'err');
     clearPending();
     if (kind === 'scope') {
-      addLog('Osciloscopio: trama rechazada por el Arduino, reintentando', 'warn');
+      addLog('Oscilloscope: frame rejected by the Arduino, retrying', 'warn');
       if (scopePreviewActive) requestScopeCapture();
     } else if (kind === 'thd' && thdSweepActive) {
       thdSweepIndex++;
       requestThdCapture();
     } else if (kind === 'kcal') {
-      abortKCal('trama rechazada por el Arduino');
+      abortKCal('frame rejected by the Arduino');
     }
   } else {
     const type = l.startsWith('OK') ? 'ok' : l.startsWith('ERR') ? 'err' : 'info';
@@ -1931,14 +1936,14 @@ function handleSerialLine(l){
   }
 }
 
-// cierra el puerto en el orden correcto
+// closes the port in the right order
 async function disconnect(){
   connected = false;
   readLoopActive = false;
-  stopScopePreview();  // el puerto va a cerrarse: no tiene sentido seguir "en directo" localmente
-  if (thdSweepActive) stopThdSweep('detenido');
-  if (kCalBits) abortKCal('puerto cerrado');
-  clearPending();      // ya no llegará ninguna respuesta pendiente
+  stopScopePreview();  // the port is about to close: no point staying "live" locally
+  if (thdSweepActive) stopThdSweep('stopped');
+  if (kCalBits) abortKCal('port closed');
+  clearPending();      // no pending reply will arrive any more
 
   if (reader) {
     try { await reader.cancel(); } catch(_){}
@@ -1952,24 +1957,25 @@ async function disconnect(){
   }
 
   if (port) {
-    try { await port.close(); } catch(e){ addLog('Aviso al cerrar: '+e.message,'warn'); }
+    try { await port.close(); } catch(e){ addLog('Warning while closing: '+e.message,'warn'); }
     port = null;
   }
 
-  document.getElementById('btn-conn').textContent = 'Conectar';
+  document.getElementById('btn-conn').textContent = 'Connect';
   document.getElementById('btn-conn').classList.remove('disc');
-  setStatus('','Desconectado');
-  addLog('Puerto cerrado','info');
+  setStatus('','Disconnected');
+  addLog('Port closed','info');
 }
 
-// envia la trama de la senal y espera los datos
+// sends the signal frame and waits for the data
 async function sendParams(){
   if (!connected) return;
-  stopScopePreview();  // no mezclar capturas del osciloscopio con una medida real
-  if (thdSweepActive) stopThdSweep('detenido');
+  stopScopePreview();  // don't mix oscilloscope captures with a real measurement
+  if (thdSweepActive) stopThdSweep('stopped');
   measureTab = (activeTab === 'sin' || activeTab === 'tri' || activeTab === 'pul' || activeTab === 'old') ? activeTab : lastSignalTab;
   if (oldLockActive() && measureTab !== 'old') {
-    addLog('Bloqueado: con el panel Pulso old seleccionado solo se envía la trama OLD', 'warn');
+    addLog('Locked: with the old pulse panel selected, only the OLD frame is sent', 'warn');
+
     return;
   }
   const frame = buildFrame(measureTab);
@@ -1983,7 +1989,7 @@ async function sendParams(){
   }
 }
 
-// interpreta lo que se escribe en la consola
+// interprets what is typed in the console
 async function runConsole(){
   const input = document.getElementById('console-input');
   const raw = input.value.trim().replace(/,(?=\d)/g, '.');
@@ -1998,63 +2004,63 @@ async function runConsole(){
   if (raw === 'debug')  { unlockDebugTab(); return; }
 
   if (raw.startsWith('TYPE:')) {
-    if (!connected) { addLog('← ERR: no conectado', 'err'); return; }
+    if (!connected) { addLog('← ERR: not connected', 'err'); return; }
     stopScopePreview();
-    if (thdSweepActive) stopThdSweep('detenido');
+    if (thdSweepActive) stopThdSweep('stopped');
     clearResCycles();
     const rawParams = parseFrameParams(raw);
     if (rawParams) { measureTab = rawParams.type.toLowerCase(); pendingRawParams = rawParams; }
     const ncycMatch = raw.match(/NCYC:(\d+)/);
     pendingNCyc = ncycMatch ? parseInt(ncycMatch[1], 10) : 1;
-    if (await sendCapture(raw, 'measure')) addLog('← trama enviada', 'ok');
+    if (await sendCapture(raw, 'measure')) addLog('← frame sent', 'ok');
     return;
   }
 
   if (raw === 'clear') { clearLog(); return; }
   if (raw === 'status') {
-    addLog('← ' + (connected ? 'conectado · 2M baud' : 'desconectado'), connected ? 'ok' : 'warn');
+    addLog('← ' + (connected ? 'connected · 2M baud' : 'disconnected'), connected ? 'ok' : 'warn');
     return;
   }
   if (raw === 'help') {
-    addLog('← Comandos disponibles:', 'info');
-    addLog('←   clear          — limpia la consola', 'info');
-    addLog('←   status         — muestra estado de conexión', 'info');
-    addLog('←   light          — activa modo claro', 'info');
-    addLog('←   dark           — activa modo oscuro', 'info');
-    addLog('←   play           — activa animación de señal', 'info');
-    addLog('←   pause          — para animación de señal', 'info');
-    addLog('←   help           — muestra esta ayuda', 'info');
-    addLog('← Trama directa: TYPE:SIN,F:100,AMP:5.00,OFF:0.00,MEM:0,INT:11,NCYC:1', 'info');
-    addLog('← Chip antiguo:  TYPE:OLD,T1:500,T2:10,MEM:0,INT:11,NCYC:3,NPTS:170', 'info');
+    addLog('← Available commands:', 'info');
+    addLog('←   clear          — clears the console', 'info');
+    addLog('←   status         — shows the connection status', 'info');
+    addLog('←   light          — enables light mode', 'info');
+    addLog('←   dark           — enables dark mode', 'info');
+    addLog('←   play           — enables the signal animation', 'info');
+    addLog('←   pause          — stops the signal animation', 'info');
+    addLog('←   help           — shows this help', 'info');
+    addLog('← Direct frame:  TYPE:SIN,F:100,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:1,NPTS:170', 'info');
+    addLog('← Old chip:      TYPE:OLD,T1:500,T2:10,MEM:0,INT:11,NCYC:3,NPTS:170', 'info');
     return;
   }
 
-  addLog('← comando inválido', 'err');
+  addLog('← invalid command', 'err');
 }
 
-let resCycles  = [];   // [{t,ch0,ch1}, ...] por ciclo
+let resCycles  = [];   // [{t,ch0,ch1}, ...] per cycle
 let resParams  = {};
-let resVisible = [];   // bool por ciclo: true = visible
-let pendingRawParams = null;  // params de la última trama cruda enviada por consola (ver runConsole/parseFrameParams)
-let pendingNCyc = 1;  // NCYC de la última trama enviada: el Arduino manda todos los ciclos juntos en una sola trama DATA:...END, hay que partirla en resCycles
+let resVisible = [];   // bool per cycle: true = visible
+let pendingRawParams = null;  // params of the last raw frame sent from the console (see runConsole/parseFrameParams)
+let pendingNCyc = 1;  // NCYC of the last frame sent: the Arduino sends all cycles together in a single DATA:...END frame, which has to be split into resCycles
 
 const CYCLE_PALETTE = [
-  '#60a5fa', // azul
-  '#f59e0b', // naranja
-  '#f43f5e', // rojo
-  '#4ade80', // verde
-  '#a78bfa', // violeta
+  '#60a5fa', // blue
+  '#f59e0b', // orange
+  '#f43f5e', // red
+  '#4ade80', // green
+  '#a78bfa', // violet
   '#22d3ee', // cyan
-  '#fb923c', // naranja oscuro
+  '#fb923c', // dark orange
   '#e879f9', // magenta
 ];
 
-// color que le toca a cada ciclo
+// colour assigned to each cycle
 function cycleColor(i) {
   return CYCLE_PALETTE[i % CYCLE_PALETTE.length];
 }
 
-// trocea la trama DATA en ciclos y muestras
+// splits the DATA frame into cycles and samples
 function parseResCycle(line) {
   const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
   const samples = parts.map(p => {
@@ -2082,11 +2088,11 @@ function parseResCycle(line) {
   const n = resCycles.length;
   const perCycleCount = newCycles[0] ? newCycles[0].length : 0;
   if (measureTab === 'old') {
-    addLog('← tren recibido (' + samples.length + ' pulso' + (samples.length !== 1 ? 's' : '') + ', 1 muestra por pulso)', 'ok');
-    document.getElementById('res-meta').textContent = samples.length + ' pulso' + (samples.length !== 1 ? 's' : '') + ' · 1 muestra por pulso';
+    addLog('← train received (' + samples.length + ' pulse' + (samples.length !== 1 ? 's' : '') + ', 1 sample per pulse)', 'ok');
+    document.getElementById('res-meta').textContent = samples.length + ' pulse' + (samples.length !== 1 ? 's' : '') + ' · 1 sample per pulse';
   } else {
-    addLog('← ' + newCycles.length + ' ciclo' + (newCycles.length > 1 ? 's' : '') + ' recibido' + (newCycles.length > 1 ? 's' : '') + ' (' + samples.length + ' muestras totales)', 'ok');
-    document.getElementById('res-meta').textContent = n + ' ciclo' + (n>1?'s':'') + ' · ' + perCycleCount + ' muestras/ciclo';
+    addLog('← ' + newCycles.length + ' cycle' + (newCycles.length > 1 ? 's' : '') + ' received (' + samples.length + ' samples in total)', 'ok');
+    document.getElementById('res-meta').textContent = n + ' cycle' + (n>1?'s':'') + ' · ' + perCycleCount + ' samples/cycle';
   }
   document.getElementById('res-empty').style.display  = 'none';
   document.getElementById('res-charts').style.display = 'block';
@@ -2097,7 +2103,7 @@ function parseResCycle(line) {
   redrawAll();
 }
 
-// rehace la leyenda de ciclos
+// rebuilds the cycle legend
 function updateLegend() {
   const legend = document.getElementById('res-legend');
   const dacItem = legend.firstElementChild;
@@ -2109,7 +2115,7 @@ function updateLegend() {
     const item = document.createElement('div');
     item.className = 'res-legend-item ' + (resVisible[i] ? 'active' : 'inactive');
     item.style.color = color;
-    item.innerHTML = `<div class="res-legend-dot" style="background:${color}"></div>Ciclo ${i+1}`;
+    item.innerHTML = `<div class="res-legend-dot" style="background:${color}"></div>Cycle ${i+1}`;
     item.onclick = () => {
       resVisible[i] = !resVisible[i];
       item.className = 'res-legend-item ' + (resVisible[i] ? 'active' : 'inactive');
@@ -2119,20 +2125,20 @@ function updateLegend() {
   });
 }
 
-// redibuja las tres graficas de resultados
+// redraws the three result charts
 function redrawAll() {
   drawIVChart();
   drawResChart('cv-ch0', 'ch0');
   drawResChart('cv-ch1', 'ch1');
 }
 
-// borra los resultados anteriores
+// clears the previous results
 function clearResCycles() {
   resCycles  = [];
   resVisible = [];
   hoverPts['cv-iv'] = hoverPts['cv-ch0'] = hoverPts['cv-ch1'] = [];
   hideTip();
-  document.getElementById('res-meta').textContent    = 'Sin datos';
+  document.getElementById('res-meta').textContent    = 'No data';
   document.getElementById('res-empty').style.display  = 'block';
   document.getElementById('res-charts').style.display = 'none';
   document.getElementById('res-legend').style.display = 'none';
@@ -2153,14 +2159,14 @@ const CRC32_TABLE = (() => {
   return t;
 })();
 
-// checksum que pide el formato zip
+// checksum required by the zip format
 function crc32(bytes) {
   let c = 0xFFFFFFFF;
   for (let i = 0; i < bytes.length; i++) c = CRC32_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
   return (c ^ 0xFFFFFFFF) >>> 0;
 }
 
-// empaqueta ficheros en un zip sin comprimir
+// packs files into an uncompressed zip
 function zipStore(files) {
   const dosTime = 0, dosDate = 0x21;
   const localParts = [], centralParts = [];
@@ -2230,26 +2236,26 @@ function zipStore(files) {
   return new Blob([...localParts, ...centralParts, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
-// escapa caracteres para el XML del xlsx
+// escapes characters for the xlsx XML
 function xmlEscape(s) {
   return String(s).replace(/[&<>]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[c]));
 }
 
-// numero de columna a letra de Excel
+// column number to Excel letter
 function colLetter(i) {
   let s = '', n = i + 1;
   while (n > 0) { const r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); }
   return s;
 }
 
-// color hexadecimal al formato de Excel
+// hex colour to Excel's format
 function hexToARGB(hex) {
   return 'FF' + hex.replace('#', '').toUpperCase();
 }
 
-const HEADER_FILL_ARGB = 'FFC6EFCE';  // verde clarito (relleno)
+const HEADER_FILL_ARGB = 'FFC6EFCE';  // light green (fill)
 
-// construye el xlsx con una hoja por ciclo
+// builds the xlsx with one sheet per cycle
 function buildXlsxMultiSheet(sheets) {
   const tabARGB = sheets.map(s => hexToARGB(s.color || '#4b5563'));
 
@@ -2307,18 +2313,18 @@ function buildXlsxMultiSheet(sheets) {
   ]);
 }
 
-// exporta los resultados y lanza la descarga
+// exports the results and starts the download
 function exportResultsXlsx() {
   if (resCycles.length === 0) return;
-  const header = ['Muestra', 't (µs)', 'CH0 V01 (V)', 'CH1 V02 (V)', 'DAC referencia (V)'];
+  const header = ['Sample', 't (µs)', 'CH0 V01 (V)', 'CH1 V02 (V)', 'DAC reference (V)'];
   const sheets = resCycles.map((cycle, ci) => ({
-    name: 'Ciclo ' + (ci + 1),
+    name: 'Cycle ' + (ci + 1),
     color: cycleColor(ci),
     rows: [header, ...cycle.map((d, si) => [si + 1, d.t, d.ch0, d.ch1, Number(dacAt(d.t, resParams).toFixed(4))])],
   }));
 
   const blob = buildXlsxMultiSheet(sheets);
-  const type = (resParams && resParams.type) ? resParams.type.toLowerCase() : 'medida';
+  const type = (resParams && resParams.type) ? resParams.type.toLowerCase() : 'measurement';
   const ts = new Date().toISOString().replace(/[:.]/g, '-');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2327,10 +2333,10 @@ function exportResultsXlsx() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
-  addLog('Exportado ' + a.download, 'ok');
+  addLog('Exported ' + a.download, 'ok');
 }
 
-// extrae los parametros de una trama de texto
+// extracts the parameters from a text frame
 function parseFrameParams(frame) {
   const num = key => { const m = frame.match(new RegExp(key + ':(-?[\\d.]+)')); return m ? parseFloat(m[1]) : undefined; };
   const typeMatch = frame.match(/TYPE:([A-Z]+)/);
@@ -2343,7 +2349,7 @@ function parseFrameParams(frame) {
   return null;
 }
 
-// guarda los parametros con los que se lanzo la medida
+// stores the parameters the measurement was started with
 function snapshotParams() {
   if (measureTab === 'sin') return {
     type:'SIN',
@@ -2372,7 +2378,7 @@ function snapshotParams() {
   return {};
 }
 
-// tension que tenia el DAC en un instante dado
+// voltage the DAC had at a given instant
 function dacAt(t_us, p) {
   if (!p || !p.type) return 0;
   const t = t_us / 1e6;
@@ -2391,13 +2397,14 @@ function dacAt(t_us, p) {
   return 0;
 }
 
-// dibuja una de las dos graficas temporales
+// draws one of the two time charts
+
 function drawResChart(id, field) {
   const canvas = document.getElementById(id);
   if (!canvas || resCycles.length === 0) return;
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.offsetWidth  || 640;
-  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  const H = canvas.offsetHeight || 200;   // real on-screen height, so the drawing isn't stretched
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
@@ -2468,7 +2475,7 @@ function drawResChart(id, field) {
       const x = toX(d.t), y = toY(d[field]);
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       pts.push({ x, y, color,
-        label: 'Ciclo ' + (ci+1) + ' · t = ' + (d.t / 1000).toFixed(2) + ' ms · ' + d[field].toFixed(3) + ' V' });
+        label: 'Cycle ' + (ci+1) + ' · t = ' + (d.t / 1000).toFixed(2) + ' ms · ' + d[field].toFixed(3) + ' V' });
     });
     ctx.stroke();
     ctx.shadowBlur = 0;
@@ -2483,7 +2490,7 @@ function drawResChart(id, field) {
   hoverPts[id] = pts;
 }
 
-// frecuencia que se esta previsualizando
+// frequency being previewed
 function previewFreqNow() {
   const t = (activeTab === 'sin' || activeTab === 'tri' || activeTab === 'pul' || activeTab === 'old') ? activeTab : lastSignalTab;
   if (t === 'tri') return sv('t-freq');
@@ -2492,13 +2499,13 @@ function previewFreqNow() {
   return sv('s-freq');
 }
 
-// arranca la animacion de la previsualizacion
+// starts the preview animation
 function startAnim() {
   if (animFrame) return;
   animLast = null;
   function frame(ts) {
     if (animLast === null) animLast = ts;
-    const dt = (ts - animLast) / 1000;  // segundos desde último frame
+    const dt = (ts - animLast) / 1000;  // seconds since the last frame
     animLast = ts;
 
     const rate = 0.3 * Math.pow(previewCycles(previewFreqNow()), 0.75);
@@ -2509,12 +2516,12 @@ function startAnim() {
   animFrame = requestAnimationFrame(frame);
 }
 
-// para la animacion
+// stops the animation
 function stopAnim() {
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
 }
 
-// permite escribir el valor a mano en vez de usar el deslizador
+// lets the value be typed by hand instead of using the slider
 function makeEditable(spanId, sliderId, scale) {
   const span   = document.getElementById(spanId);
   const slider = document.getElementById(sliderId);
@@ -2612,7 +2619,7 @@ function makeEditable(spanId, sliderId, scale) {
   });
 })();
 
-// acota amplitud y offset para que entre los dos no pasen de 1 V
+// limits amplitude and offset so that together they don't exceed 1 V
 function clampSinRanges(changed) {
   const ampEl = document.getElementById('s-amp');
   const offEl = document.getElementById('s-off');
@@ -2627,7 +2634,7 @@ function clampSinRanges(changed) {
     if (Math.abs(off) > maxOff + 1e-9) {
       off = Math.sign(off) * maxOff;
       offEl.value = Math.round(off * 20);
-      offVspan.textContent = off.toFixed(2);   // forzar actualización inmediata del número
+      offVspan.textContent = off.toFixed(2);   // force an immediate update of the number
       changedSomething = true;
     }
   } else {
@@ -2635,7 +2642,7 @@ function clampSinRanges(changed) {
     if (amp > maxAmp + 1e-9) {
       amp = Math.max(0, maxAmp);
       ampEl.value = Math.round(amp * 20);
-      ampVspan.textContent = amp.toFixed(2);   // forzar actualización inmediata del número
+      ampVspan.textContent = amp.toFixed(2);   // force an immediate update of the number
       changedSomething = true;
     }
   }
@@ -2660,7 +2667,7 @@ makeEditable('p-gap-v',  'p-gap',  1);
 makeEditable('o-t1-v',   'o-t1',   1);
 makeEditable('o-t2-v',   'o-t2',   1);
 
-// pausa o reanuda la animacion
+// pauses or resumes the animation
 function setAnim(enabled) {
   if (enabled) startAnim();
   else { stopAnim(); drawChart(animPhase); }
@@ -2674,13 +2681,13 @@ function setAnim(enabled) {
   if (x2)  x2.style.display = enabled ? 'none' : '';
 }
 
-// invierte el estado de la animacion
+// toggles the animation state
 function toggleAnim() {
   const isRunning = !!animFrame;
   setAnim(!isRunning);
 }
 
-// aplica el tema claro o el oscuro
+// applies the light or dark theme
 function setLight(enabled) {
   document.body.classList.toggle('light', enabled);
   const cfgToggle = document.getElementById('toggle-light-cfg');
@@ -2695,7 +2702,7 @@ function setLight(enabled) {
   }
 }
 
-// cambia de tema
+// switches theme
 function toggleTheme() {
   const isLight = document.body.classList.contains('light');
   setLight(!isLight);
@@ -2703,16 +2710,16 @@ function toggleTheme() {
 
 const RBIAS_OHM  = 3400;
 const K_TEORICA  = {
-  '00': 0.125 / RBIAS_OHM,   // ×1/8  →  36,8 µA/V
-  '01': 0.25  / RBIAS_OHM,   // ×1/4  →  73,5 µA/V
-  '10': 0.5   / RBIAS_OHM,   // ×1/2  → 147,1 µA/V
-  '11': 1.0   / RBIAS_OHM    // ×1    → 294,1 µA/V
+  '00': 0.125 / RBIAS_OHM,   // ×1/8  →  36.8 µA/V
+  '01': 0.25  / RBIAS_OHM,   // ×1/4  →  73.5 µA/V
+  '10': 0.5   / RBIAS_OHM,   // ×1/2  → 147.1 µA/V
+  '11': 1.0   / RBIAS_OHM    // ×1    → 294.1 µA/V
 };
 
 const CAL_FREQ = 5;      // Hz
-const CAL_NCYC = 2;      // ciclos
-const CAL_NPTS = 255;    // puntos por ciclo
-const CAL_VMAX = 1.00;   // V (máximo de tensión de control del TK042)
+const CAL_NCYC = 2;      // cycles
+const CAL_NPTS = 255;    // points per cycle
+const CAL_VMAX = 1.00;   // V (maximum control voltage of the TK042)
 const CAL_VMIN = 0.00;   // V
 
 const CAL_VCTRL_MIN = 0.1;   // V
@@ -2720,44 +2727,44 @@ const CAL_VCTRL_MIN = 0.1;   // V
 const ADC_FS_V    = 5.0;
 const ADC_MAX_CNT = 4095;
 
-const CAL_MIN_DROP  = 50;    // cuentas de ADC de caída máxima sobre R
-const CAL_DROP_OBJ  = 400;   // caída "cómoda" (≈0.49 V) usada para sugerir R
-const CAL_MAX_WAITS = 20;    // reintentos de 250 ms esperando a que se libere la línea
+const CAL_MIN_DROP  = 50;    // ADC counts of maximum voltage drop across R
+const CAL_DROP_OBJ  = 400;   // "comfortable" drop (≈0.49 V) used to suggest R
+const CAL_MAX_WAITS = 20;    // 250 ms retries waiting for the line to become free
 
 let kMedidas = {};
 ['00','01','10','11'].forEach(b => { kMedidas[b] = nuevoKReg(b); });
 let useKCal = false;
 
-// registro vacio de calibracion de un rango
+// empty calibration record for one range
 function nuevoKReg(bits) {
   return {
-    k: null,               // K medida (A/V); null = este rango no se ha calibrado
-    n: 0, ntot: 0,         // puntos válidos / muestras recibidas
-    R: null, dropCnt: 0,   // resistencia patrón (Ω) y caída máxima (cuentas de ADC)
-    aviso: null            // texto del aviso de resolución, si lo hubo
+    k: null,               // measured K (A/V); null = this range hasn't been calibrated
+    n: 0, ntot: 0,         // valid points / samples received
+    R: null, dropCnt: 0,   // reference resistor (Ω) and maximum drop (ADC counts)
+    aviso: null            // text of the resolution warning, if there was one
   };
 }
 
-// devuelve la K medida de un rango
+// returns the measured K of a range
 function kCalculada(bits) {
   const m = kMedidas[bits];
   return (m && Number.isFinite(m.k) && m.k !== 0) ? m.k : K_TEORICA[bits];
 }
 
-// devuelve la K que se esta usando
+// returns the K currently in use
 function activeK() {
   return (useKCal ? kCalculada(cfgInt) : K_TEORICA[cfgInt]) || K_TEORICA['11'];
 }
 
-// guarda la calibracion en el navegador
+// saves the calibration in the browser
 function saveKCfg() {
   try {
     localStorage.setItem('tk042_kmedidas', JSON.stringify(kMedidas));
     localStorage.setItem('tk042_use_kcal', useKCal ? '1' : '0');
-  } catch (e) { /* localStorage no disponible (p.ej. file:// en algún navegador) */ }
+  } catch (e) { /* localStorage not available (e.g. file:// in some browsers) */ }
 }
 
-// recupera la calibracion guardada
+// restores the saved calibration
 function loadKCfg() {
   try {
     const s = JSON.parse(localStorage.getItem('tk042_kmedidas'));
@@ -2778,12 +2785,12 @@ function loadKCfg() {
       }
     });
     useKCal = localStorage.getItem('tk042_use_kcal') === '1';
-  } catch (e) { /* sin datos guardados o localStorage no disponible */ }
+  } catch (e) { /* no saved data, or localStorage not available */ }
 }
 
-// formatea una corriente con su prefijo
+// formats a current with its prefix
 function fmtAmp(a) {
-  if (!Number.isFinite(a)) return '—';   // Number.isFinite: isFinite(null) sería true
+  if (!Number.isFinite(a)) return '—';   // Number.isFinite: isFinite(null) would be true
   const s = a < 0 ? '−' : '';
   const x = Math.abs(a);
   if (x === 0) return '0 A';
@@ -2792,10 +2799,10 @@ function fmtAmp(a) {
   return s + (x * 1e3).toFixed(4) + ' mA';
 }
 
-// formatea una constante K
+// formats a K constant
 function fmtK(k) { return Number.isFinite(k) ? fmtAmp(k) + '/V' : '—'; }
 
-// formatea una resistencia
+// formats a resistance
 function fmtOhm(r) {
   if (!Number.isFinite(r) || r <= 0) return '—';
   if (r >= 1e6) return (r / 1e6).toFixed(r >= 1e7 ? 0 : 2) + ' MΩ';
@@ -2803,13 +2810,13 @@ function fmtOhm(r) {
   return r.toFixed(r >= 100 ? 0 : 1) + ' Ω';
 }
 
-// resistencia patron recomendada para un rango
+// recommended reference resistor for a range
 function rSugerida(bits) {
   const iMax = Math.abs(K_TEORICA[bits]) * CAL_VMAX;
   return (CAL_DROP_OBJ * ADC_FS_V / ADC_MAX_CNT) / iMax;
 }
 
-// refresca el panel de calibracion
+// refreshes the calibration panel
 function refreshKUI() {
   const optTeo = document.getElementById('k-opt-teo');
   if (!optTeo) return;
@@ -2820,18 +2827,19 @@ function refreshKUI() {
   ['00','01','10','11'].forEach(b => {
     const m = kMedidas[b];
     document.getElementById('k-hint-' + b).textContent =
-      'R sug. ≈ ' + fmtOhm(rSugerida(b));
+      'Sugg. R ≈ ' + fmtOhm(rSugerida(b));
+
     document.getElementById('k-res-' + b).textContent = 'K = ' + fmtK(kCalculada(b));
 
     const st = document.getElementById('k-stats-' + b);
-    const lineas = ['K teórica ' + fmtK(K_TEORICA[b])];
+    const lineas = ['Theor. K ' + fmtK(K_TEORICA[b])];
     if (Number.isFinite(m.k) && m.k !== 0) {
       const err = (m.k - K_TEORICA[b]) / K_TEORICA[b] * 100;
       lineas.push('error ' + (err >= 0 ? '+' : '−') + Math.abs(err).toFixed(2) + '%');
       lineas.push('N ' + m.n + '/' + m.ntot + ' · ΔV ' + Math.round(m.dropCnt) + ' cts');
       lineas.push('R = ' + fmtOhm(m.R));
     } else {
-      lineas.push('(sin calibrar)');
+      lineas.push('(not calibrated)');
     }
     st.textContent = lineas.join('\n');
     st.style.whiteSpace = 'pre-line';
@@ -2843,7 +2851,7 @@ function refreshKUI() {
   updateActionButtons();
 }
 
-// elige entre K teorica y K calculada
+// chooses between theoretical K and measured K
 function setUseKCal(on) {
   useKCal = on;
   saveKCfg();
@@ -2851,26 +2859,26 @@ function setUseKCal(on) {
   if (resCycles.length > 0) redrawAll();
 }
 
-let kCalBits   = null;   // rango que se está calibrando ahora, o null
-let kCalR      = 0;      // R congelada al lanzar (Ω), por si se edita el campo a media medida
-let kCalParams = null;   // params de la trama enviada, para reconstruir Vctrl con dacAt()
-let kCalWaits  = 0;      // reintentos gastados esperando a que se libere la línea
+let kCalBits   = null;   // range being calibrated now, or null
+let kCalR      = 0;      // R frozen at launch (Ω), in case the field is edited mid-measurement
+let kCalParams = null;   // params of the frame sent, to rebuild Vctrl with dacAt()
+let kCalWaits  = 0;      // retries spent waiting for the line to become free
 
-// fija la resistencia patron introducida
+// stores the reference resistor entered
 function setKCalR() {
   try { localStorage.setItem('tk042_kcal_r', document.getElementById('k-rpatron').value); }
-  catch (e) { /* localStorage no disponible */ }
+  catch (e) { /* localStorage not available */ }
 }
 
-// recupera la resistencia patron guardada
+// restores the saved reference resistor
 function loadKCalR() {
   try {
     const r = localStorage.getItem('tk042_kcal_r');
     if (r !== null && isFinite(parseFloat(r))) document.getElementById('k-rpatron').value = r;
-  } catch (e) { /* sin datos guardados */ }
+  } catch (e) { /* no saved data */ }
 }
 
-// escribe el mensaje de estado de una calibracion
+// writes the status message of a calibration
 function setKCalMsg(bits, msg, tipo) {
   const el = document.getElementById('k-msg-' + bits);
   if (!el) return;
@@ -2878,50 +2886,50 @@ function setKCalMsg(bits, msg, tipo) {
   el.className = 'k-msg' + (tipo ? ' ' + tipo : '');
 }
 
-// cancela la calibracion en curso
+// cancels the calibration in progress
 function abortKCal(motivo) {
   if (!kCalBits) return;
   const bits = kCalBits;
   kCalBits = null;
   setKCalMsg(bits, motivo, 'err');
-  addLog('CAL ' + bits + ' | cancelada: ' + motivo, 'warn');
+  addLog('CAL ' + bits + ' | cancelled: ' + motivo, 'warn');
   updateActionButtons();
 }
 
-// lanza la calibracion de un rango
+// starts the calibration of a range
 function startKCal(bits) {
-  if (!connected) { addLog('CAL ' + bits + ' | no hay conexión con el Arduino', 'err'); return; }
-  if (kCalBits)   { addLog('CAL ' + bits + ' | ya hay una calibración en curso (' + kCalBits + ')', 'warn'); return; }
+  if (!connected) { addLog('CAL ' + bits + ' | not connected to the Arduino', 'err'); return; }
+  if (kCalBits)   { addLog('CAL ' + bits + ' | a calibration is already in progress (' + kCalBits + ')', 'warn'); return; }
 
   const R = parseFloat(document.getElementById('k-rpatron').value);
   if (!isFinite(R) || R <= 0) {
-    setKCalMsg(bits, 'falta R', 'err');
-    addLog('CAL ' + bits + ' | introduce antes el valor de la resistencia patrón (Ω)', 'err');
+    setKCalMsg(bits, 'R missing', 'err');
+    addLog('CAL ' + bits + ' | enter the reference resistor value (Ω) first', 'err');
     return;
   }
 
   if (scopePreviewActive) stopScopePreview();
-  if (thdSweepActive) stopThdSweep('detenido');
+  if (thdSweepActive) stopThdSweep('stopped');
 
   kCalBits  = bits;
   kCalR     = R;
   kCalWaits = 0;
   setKCalR();
-  updateActionButtons();   // bloquea ya los cuatro botones, aunque todavía se esté esperando la línea
+  updateActionButtons();   // locks all four buttons now, even if still waiting for the line
   requestKCalCapture();
 }
 
-// pide la rampa de calibracion al Arduino
+// asks the Arduino for the calibration ramp
 async function requestKCalCapture() {
   if (!kCalBits) return;
 
   if (pending) {
     if (kCalWaits++ < CAL_MAX_WAITS) {
-      setKCalMsg(kCalBits, 'esperando línea…', '');
+      setKCalMsg(kCalBits, 'waiting for line…', '');
       setTimeout(requestKCalCapture, 250);
       return;
     }
-    abortKCal('línea ocupada (' + pending + ')');
+    abortKCal('line busy (' + pending + ')');
     return;
   }
 
@@ -2933,13 +2941,13 @@ async function requestKCalCapture() {
                 ',NCYC:' + CAL_NCYC + ',NPTS:' + CAL_NPTS;
   kCalParams = parseFrameParams(frame);
 
-  setKCalMsg(bits, 'midiendo…', '');
+  setKCalMsg(bits, 'measuring…', '');
   const ok = await sendCapture(frame, 'kcal', CAL_NCYC / CAL_FREQ * 1000 * 2 + 5000);
   if (ok) addLog('→ ' + frame, 'sent-tri');
-  else    abortKCal('no se pudo enviar la trama');
+  else    abortKCal('could not send the frame');
 }
 
-// calcula K promediando corriente y tension de la rampa
+// computes K by averaging the ramp's current and voltage
 function calcularK(samples, params, R) {
   const enCuentas = v => Math.abs(v) * ADC_MAX_CNT / ADC_FS_V;
 
@@ -2953,25 +2961,25 @@ function calcularK(samples, params, R) {
 
     if (Math.abs(v) < CAL_VCTRL_MIN) { nBajo++; continue; }
 
-    const dV = s.ch0 - s.ch1;          // caída sobre R, con signo
+    const dV = s.ch0 - s.ch1;          // drop across R, signed
     dropCnt = Math.max(dropCnt, enCuentas(dV));
     sumV += v;
-    sumI += dV / R;                    // ley de Ohm: I = ΔV / R
+    sumI += dV / R;                    // Ohm's law: I = ΔV / R
     n++;
   }
 
   const base = { n, ntot: samples.length, nBajo, dropCnt };
-  if (n === 0)     return Object.assign({ ok: false, motivo: 'no quedan puntos válidos' }, base);
-  if (sumV === 0)  return Object.assign({ ok: false, motivo: 'la tensión de control media es cero' }, base);
+  if (n === 0)     return Object.assign({ ok: false, motivo: 'no valid points left' }, base);
+  if (sumV === 0)  return Object.assign({ ok: false, motivo: 'the mean control voltage is zero' }, base);
 
   return Object.assign({ ok: true, k: (sumI / n) / (sumV / n) }, base);
 }
 
-// recibe la rampa y guarda el resultado
+// receives the ramp and stores the result
 function onKCalCapture(line) {
   const bits = kCalBits;
   kCalBits = null;
-  if (!bits) { addLog('CAL | captura recibida sin calibración en curso: descartada', 'warn'); return; }
+  if (!bits) { addLog('CAL | capture received with no calibration in progress: discarded', 'warn'); return; }
 
   const parts = line.slice(5).split(';').filter(p => p && p !== 'END');
   const samples = parts.map(p => {
@@ -2984,9 +2992,9 @@ function onKCalCapture(line) {
   const m   = kMedidas[bits];
 
   if (!res.ok) {
-    setKCalMsg(bits, 'medida imposible', 'err');
-    addLog('CAL ' + bits + ' | R = ' + R + ' Ω | medida imposible: ' + res.motivo +
-           ' (' + res.n + '/' + res.ntot + ' puntos válidos)', 'err');
+    setKCalMsg(bits, 'measurement failed', 'err');
+    addLog('CAL ' + bits + ' | R = ' + R + ' Ω | measurement failed: ' + res.motivo +
+           ' (' + res.n + '/' + res.ntot + ' valid points)', 'err');
     updateActionButtons();
     return;
   }
@@ -2995,9 +3003,9 @@ function onKCalCapture(line) {
   const err  = (res.k - kTeo) / kTeo * 100;
 
   const aviso = res.dropCnt < CAL_MIN_DROP
-    ? 'caída máxima ' + Math.round(res.dropCnt) + ' cuentas de ADC (< ' + CAL_MIN_DROP +
-      '): R demasiado pequeña para este rango, la caída no llega a la resolución del conversor. ' +
-      'Repite con R ≈ ' + fmtOhm(rSugerida(bits)) + ' o mayor'
+    ? 'maximum drop ' + Math.round(res.dropCnt) + ' ADC counts (< ' + CAL_MIN_DROP +
+      '): R too small for this range, the drop doesn\'t reach the converter\'s resolution. ' +
+      'Repeat with R ≈ ' + fmtOhm(rSugerida(bits)) + ' or larger'
     : null;
 
   m.k = res.k;
@@ -3008,7 +3016,7 @@ function onKCalCapture(line) {
   m.aviso = aviso;
 
   saveKCfg();
-  setKCalMsg(bits, aviso ? 'medida con aviso' : 'medida OK', aviso ? 'warn' : '');
+  setKCalMsg(bits, aviso ? 'measured, with warning' : 'measured OK', aviso ? 'warn' : '');
   refreshKUI();
   if (useKCal && resCycles.length > 0) redrawAll();
 
@@ -3017,13 +3025,13 @@ function onKCalCapture(line) {
          ' | K = ' + fmtK(res.k) +
          ' | error = ' + (err >= 0 ? '+' : '−') + Math.abs(err).toFixed(2) + '%',
          aviso ? 'warn' : 'ok');
-  if (aviso) addLog('CAL ' + bits + ' | AVISO: ' + aviso, 'warn');
-  if (!useKCal && res.k > 0) addLog('CAL ' + bits + ' | activa «K calculada» para que las gráficas usen esta K', 'info');
+  if (aviso) addLog('CAL ' + bits + ' | WARNING: ' + aviso, 'warn');
+  if (!useKCal && res.k > 0) addLog('CAL ' + bits + ' | enable “Measured K” for the charts to use this K', 'info');
 
   updateActionButtons();
 }
 
-// texto de la corriente para las etiquetas
+// current text for the labels
 function currentStr(volts) {
   const I = volts * activeK();
   const sign = I < 0 ? '-' : '';
@@ -3034,13 +3042,13 @@ function currentStr(volts) {
   return sign + (absI * 1e3).toFixed(3) + ' mA';
 }
 
-// dibuja la curva caracteristica
+// draws the characteristic curve
 function drawIVChart() {
   const canvas = document.getElementById('cv-iv');
   if (!canvas || resCycles.length === 0) return;
   const dpr = window.devicePixelRatio || 1;
   const W = canvas.offsetWidth  || 640;
-  const H = canvas.offsetHeight || 200;   // altura real en pantalla, para no estirar el dibujo
+  const H = canvas.offsetHeight || 200;   // real on-screen height, so the drawing isn't stretched
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   const ctx = canvas.getContext('2d');
@@ -3057,8 +3065,8 @@ function drawIVChart() {
   resCycles.forEach((cycle, ci) => {
     if (!resVisible[ci]) return;
     cycle.forEach(d => {
-      const vDrop = d.ch0 - d.ch1;             // caída de tensión sobre el memristor, con signo
-      const I     = dacAt(d.t, resParams) * k; // I = K·Vctrl, con signo
+      const vDrop = d.ch0 - d.ch1;             // voltage drop across the memristor, signed
+      const I     = dacAt(d.t, resParams) * k; // I = K·Vctrl, signed
       allV.push(vDrop);
       allI.push(I);
     });
@@ -3114,15 +3122,15 @@ function drawIVChart() {
     ctx.shadowColor = palette[ci % palette.length];
     ctx.shadowBlur = 3;
     cycle.forEach(d => {
-      const vDrop = d.ch0 - d.ch1;             // con signo, igual que arriba
-      const I     = dacAt(d.t, resParams) * k; // con signo, igual que arriba
+      const vDrop = d.ch0 - d.ch1;             // signed, same as above
+      const I     = dacAt(d.t, resParams) * k; // signed, same as above
       const x = toX(vDrop);
       const y = toY(I);
       ctx.beginPath();
       ctx.arc(x, y, 1.5, 0, Math.PI * 2);
       ctx.fill();
       pts.push({ x, y, color: palette[ci % palette.length],
-        label: 'Ciclo ' + (ci+1) + ' · ΔV = ' + vDrop.toFixed(3) + ' V · I = ' + currentStr(dacAt(d.t, resParams)) });
+        label: 'Cycle ' + (ci+1) + ' · ΔV = ' + vDrop.toFixed(3) + ' V · I = ' + currentStr(dacAt(d.t, resParams)) });
     });
     ctx.shadowBlur = 0;
   });
@@ -3130,20 +3138,20 @@ function drawIVChart() {
 }
 
 const hoverPts = {};
-const HOVER_RADIUS = 14;  // px: distancia máxima ratón-punto para mostrar el tooltip
+const HOVER_RADIUS = 14;  // px: maximum mouse-to-point distance to show the tooltip
 
 const tipEl  = document.createElement('div'); tipEl.className  = 'cv-tip';
 const ringEl = document.createElement('div'); ringEl.className = 'cv-ring';
 document.body.appendChild(tipEl);
 document.body.appendChild(ringEl);
 
-// oculta la etiqueta flotante
+// hides the floating label
 function hideTip(){
   tipEl.style.display  = 'none';
   ringEl.style.display = 'none';
 }
 
-// activa la etiqueta flotante sobre una grafica
+// enables the floating label over a chart
 function attachHover(id){
   const canvas = document.getElementById(id);
   if (!canvas) return;
@@ -3181,14 +3189,14 @@ function attachHover(id){
 
 ['thd-canvas','scope-canvas','cv-iv','cv-ch0','cv-ch1'].forEach(attachHover);
 
-// cambia el indicador de conexion
+// updates the connection indicator
 function setStatus(state, msg){
   const dot = document.getElementById('dot');
   dot.className = 'dot' + (state?' '+state:'');
-  document.getElementById('stxt').innerHTML = msg || 'Desconectado';
+  document.getElementById('stxt').innerHTML = msg || 'Disconnected';
 }
 
-// escribe una linea en la consola
+// writes a line to the console
 function addLog(msg,type='info'){
   const log = document.getElementById('log');
   const now = new Date();
@@ -3200,21 +3208,22 @@ function addLog(msg,type='info'){
   log.scrollTop=log.scrollHeight;
 }
 
-// vacia la consola
+// clears the console
 function clearLog(){ document.getElementById('log').innerHTML=''; }
 
-// copia la consola al portapapeles
+// copies the console to the clipboard
 function copyLog(){
   const text=Array.from(document.querySelectorAll('.log-line')).map(l=>l.textContent).join('\n');
-  navigator.clipboard.writeText(text).then(()=>addLog('Log copiado','info'));
+  navigator.clipboard.writeText(text).then(()=>addLog('Log copied','info'));
 }
 
 window.addEventListener('resize', () => { if(resCycles.length>0) redrawAll(); });
 if(!('serial' in navigator)){
   document.getElementById('warn').style.display='block';
-  addLog('Web Serial API no soportada en este navegador — usa Chrome o Edge','err');
+  addLog('Web Serial API not supported in this browser — use Chrome or Edge','err');
 } else {
-  addLog('Listo. Conecta el Arduino por USB y pulsa Conectar.','info');
+  addLog('Ready. Connect the Arduino over USB and press Connect.','info');
+
 }
 clampSinRanges('amp');
 loadKCfg();
