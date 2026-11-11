@@ -15,14 +15,78 @@
 //    36 M1      00 = x1/8, 01 = x1/4, 10 = x1/2, 11 = x1
 //    53 CS    chip select del MCP3304 (el resto del SPI, por hardware)
 //
+//  Puerto serie
+//    2 000 000 baud, 8N1. Una trama por línea, terminada en '\n' (el '\r'
+//    se ignora). Máximo 127 caracteres; lo que sobre se descarta sin aviso.
+//
+//  Arranque
+//    Al encender (o al resetear, que abrir el puerto resetea el Mega) manda
+//      OK:READY
+//    Todo queda en reposo: DAC a 0, EC bajo (sin corriente), SM1 y SM2 altos.
+//
+//  Cómo se lanza una medida
+//    No hay comando START aparte: la propia trama TYPE:... es la orden de
+//    empezar. En cuanto se recibe y se valida, el Arduino genera NCYC ciclos
+//    seguidos, manda el DATA:...END y vuelve a reposo esperando otra trama.
+//    Es de un solo disparo: para repetir hay que volver a mandar la trama.
+//    Mientras mide no lee el puerto serie, así que no se puede parar a medias
+//    ni conviene mandar nada hasta recibir el END.
+//
 //  Tramas que entiende
 //    TYPE:SIN,F:10.00,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:3,NPTS:170
 //    TYPE:TRI,F:10.00,VMAX:1.00,VMIN:-1.00,MEM:0,INT:11,NCYC:3,NPTS:170
 //    TYPE:PUL,VHI:1.00,VLO:0.00,DUR:500,PER:10,MEM:0,INT:11,NCYC:3,NPTS:170
 //    TYPE:OLD,T1:2000,T2:10,MEM:0,INT:11,NCYC:10,NPTS:170
 //
-//  Respuesta, una sola vez al terminar todos los ciclos
+//    Campos CLAVE:valor separados por comas. Si falta un campo se reutiliza
+//    el valor de la trama anterior. OJO: la búsqueda es por texto, y "F:"
+//    también aparece dentro de "OFF:", así que en SIN el F tiene que ir
+//    antes que el OFF (como en el ejemplo) o leerá el offset como frecuencia.
+//
+//    Comunes a todas
+//      TYPE   SIN | TRI | PUL | OLD (solo cuenta la primera letra)
+//      MEM    1 = SM1 alto, 0 = SM1 bajo (qué memristor está activo)
+//      INT    dos dígitos M0 M1, el espejo de corriente (tabla de pines)
+//      NCYC   número de ciclos (mín. 1). En OLD, número de pulsos (máx. 512)
+//      NPTS   muestras por ciclo. NCYC x NPTS <= 512. En OLD no se usa,
+//             pero se manda igual para no romper el formato
+//    SIN    F    frecuencia en Hz (mín. 1, se toma el valor absoluto)
+//           AMP  amplitud de pico en V
+//           OFF  offset en V
+//    TRI    F    frecuencia en Hz (mín. 1)
+//           VMAX tensión máxima en V
+//           VMIN tensión mínima en V
+//    PUL    VHI  tensión del pulso en V
+//           VLO  tensión de reposo en V
+//           DUR  duración del pulso en us
+//           PER  periodo en ms
+//    OLD    T1   duración del pulso de EC en us (mín. 1, como mucho T2)
+//           T2   periodo en ms (mín. 1)
+//    Todas las tensiones se recortan a +-1 V (TK042_VMAX) al sacarlas.
+//
+//  Respuestas a una trama, en este orden
+//    WARN:NPTS_CLIPPED_TO_MAX   NCYC x NPTS > 512, se ha bajado NPTS
+//                               (en OLD, NCYC > 512 y se ha bajado NCYC)
+//    WARN:FREQ_CLIPPED_TO_MIN   F < 1 Hz en SIN/TRI, se usa 1 Hz
+//    WARN:VOLTAGE_CLIP_1V       la señal pasa de 1 V, se recortarán los picos
+//    OK:SIN | OK:TRI | OK:PUL | OK:OLD   trama aceptada, empieza la medida
+//    ERR:UNKNOWN_TYPE           TYPE no reconocido, no se mide nada
+//    Los WARN son solo avisos: la medida arranca igual.
+//
+//  Datos, una sola vez al terminar todos los ciclos
 //    DATA:t0,ch0,ch1;t1,ch0,ch1;...;END
+//    t        us desde el inicio de la señal (acumulado entre ciclos)
+//    ch0,ch1  tensión en V del MCP3304, canales 0 y 1, con 4 decimales.
+//             Llevan signo negativo en los semiciclos negativos (ver
+//             storeSample()). En OLD hay una muestra por pulso.
+//    Cada ciclo tiene además un timeout de 10 s (PERIOD_TIMEOUT_US).
+//
+//  Modo test (TEST_MODE)
+//    Descomentando "#define TEST_MODE" (más abajo) no se lee el MCP3304: cada
+//    muestra se inventa a partir de la tensión pedida al DAC más ruido
+//    aleatorio (ch1 al 75 % de ch0). Sirve para probar las tramas y la web
+//    sin el chip. Se activa al compilar, no por trama, y viene desactivado.
+//    No confundir con el modo test del propio integrado.
 //
 //  Cosas que se me suelen olvidar :)
 //   · El buffer son 512 muestras. NCYC x NPTS no puede pasar de ahí; si se
