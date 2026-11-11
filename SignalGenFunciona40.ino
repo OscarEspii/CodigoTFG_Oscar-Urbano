@@ -1,124 +1,126 @@
 // ═══════════════════════════════════════════════════════════════
-//  Generador de señales para el banco de medida de memristores
-//  Arduino Mega 2560 + escalera R-2R de 8 bits + TK042
+//  Signal generator for the memristor measurement bench
+//  Arduino Mega 2560 + 8-bit R-2R ladder + TK042
 //
-//  La app web manda una trama de texto por el puerto serie a 2 Mbaud,
-//  el Arduino genera la señal pedida, va leyendo el ADC mientras la
-//  genera, y al acabar devuelve todas las muestras juntas.
+//  The web app sends a text frame over the serial port at 2 Mbaud,
+//  the Arduino generates the requested signal, reads the ADC while it
+//  is generating it, and when it finishes it sends back all the samples
+//  at once.
 //
-//  Pines
-//    22-29    escalera R-2R (Puerto A entero, se escribe de una vez)
-//    32 SM1   memristor activo
-//    33 SM2   sentido de la corriente
-//    34 EC    habilita la corriente
-//    35 M0    espejo de corriente, junto con M1
+//  Pins
+//    22-29    R-2R ladder (the whole of Port A, written in one go)
+//    32 SM1   active memristor
+//    33 SM2   current direction
+//    34 EC    current enable
+//    35 M0    current mirror, together with M1
 //    36 M1      00 = x1/8, 01 = x1/4, 10 = x1/2, 11 = x1
-//    53 CS    chip select del MCP3304 (el resto del SPI, por hardware)
+//    53 CS    MCP3304 chip select (the rest of the SPI is hardware)
 //
-//  Puerto serie
-//    2 000 000 baud, 8N1. Una trama por línea, terminada en '\n' (el '\r'
-//    se ignora). Máximo 127 caracteres; lo que sobre se descarta sin aviso.
+//  Serial port
+//    2 000 000 baud, 8N1. One frame per line, terminated by '\n' ('\r' is
+//    ignored). 127 characters max; anything beyond that is silently dropped.
 //
-//  Arranque
-//    Al encender (o al resetear, que abrir el puerto resetea el Mega) manda
+//  Startup
+//    On power-up (or on reset; opening the port resets the Mega) it sends
 //      OK:READY
-//    Todo queda en reposo: DAC a 0, EC bajo (sin corriente), SM1 y SM2 altos.
+//    Everything is left idle: DAC at 0, EC low (no current), SM1 and SM2 high.
 //
-//  Cómo se lanza una medida
-//    No hay comando START aparte: la propia trama TYPE:... es la orden de
-//    empezar. En cuanto se recibe y se valida, el Arduino genera NCYC ciclos
-//    seguidos, manda el DATA:...END y vuelve a reposo esperando otra trama.
-//    Es de un solo disparo: para repetir hay que volver a mandar la trama.
-//    Mientras mide no lee el puerto serie, así que no se puede parar a medias
-//    ni conviene mandar nada hasta recibir el END.
+//  How a measurement is started
+//    There is no separate START command: the TYPE:... frame itself is the
+//    order to start. As soon as it is received and validated, the Arduino
+//    generates NCYC consecutive cycles, sends DATA:...END and goes back to
+//    idle, waiting for another frame.
+//    It is one-shot: to repeat, send the frame again.
+//    While measuring it does not read the serial port, so a measurement
+//    cannot be stopped halfway, and nothing should be sent until END arrives.
 //
-//  Tramas que entiende
+//  Frames it understands
 //    TYPE:SIN,F:10.00,AMP:0.50,OFF:0.00,MEM:0,INT:11,NCYC:3,NPTS:170
 //    TYPE:TRI,F:10.00,VMAX:1.00,VMIN:-1.00,MEM:0,INT:11,NCYC:3,NPTS:170
 //    TYPE:PUL,VHI:1.00,VLO:0.00,DUR:500,PER:10,MEM:0,INT:11,NCYC:3,NPTS:170
 //    TYPE:OLD,T1:2000,T2:10,MEM:0,INT:11,NCYC:10,NPTS:170
 //
-//    Campos CLAVE:valor separados por comas. Si falta un campo se reutiliza
-//    el valor de la trama anterior. OJO: la búsqueda es por texto, y "F:"
-//    también aparece dentro de "OFF:", así que en SIN el F tiene que ir
-//    antes que el OFF (como en el ejemplo) o leerá el offset como frecuencia.
+//    KEY:value fields separated by commas, in any order (see findKey()).
+//    If a field is missing, the value from the previous frame is reused.
 //
-//    Comunes a todas
-//      TYPE   SIN | TRI | PUL | OLD (solo cuenta la primera letra)
-//      MEM    1 = SM1 alto, 0 = SM1 bajo (qué memristor está activo)
-//      INT    dos dígitos M0 M1, el espejo de corriente (tabla de pines)
-//      NCYC   número de ciclos (mín. 1). En OLD, número de pulsos (máx. 512)
-//      NPTS   muestras por ciclo. NCYC x NPTS <= 512. En OLD no se usa,
-//             pero se manda igual para no romper el formato
-//    SIN    F    frecuencia en Hz (mín. 1, se toma el valor absoluto)
-//           AMP  amplitud de pico en V
-//           OFF  offset en V
-//    TRI    F    frecuencia en Hz (mín. 1)
-//           VMAX tensión máxima en V
-//           VMIN tensión mínima en V
-//    PUL    VHI  tensión del pulso en V
-//           VLO  tensión de reposo en V
-//           DUR  duración del pulso en us
-//           PER  periodo en ms
-//    OLD    T1   duración del pulso de EC en us (mín. 1, como mucho T2)
-//           T2   periodo en ms (mín. 1)
-//    Todas las tensiones se recortan a +-1 V (TK042_VMAX) al sacarlas.
+//    Common to all of them
+//      TYPE   SIN | TRI | PUL | OLD (only the first letter counts)
+//      MEM    1 = SM1 high, 0 = SM1 low (which memristor is active)
+//      INT    two digits M0 M1, the current mirror (see the pin table)
+//      NCYC   number of cycles (min. 1). In OLD, number of pulses (max. 512)
+//      NPTS   samples per cycle. NCYC x NPTS <= 512. Not used in OLD,
+//             but sent anyway so the format stays the same
+//    SIN    F    frequency in Hz (min. 1, the absolute value is taken)
+//           AMP  peak amplitude in V
+//           OFF  offset in V
+//    TRI    F    frequency in Hz (min. 1)
+//           VMAX maximum voltage in V
+//           VMIN minimum voltage in V
+//    PUL    VHI  pulse voltage in V
+//           VLO  rest voltage in V
+//           DUR  pulse duration in us
+//           PER  period in ms
+//    OLD    T1   EC pulse duration in us (min. 1, at most T2)
+//           T2   period in ms (min. 1)
+//    All voltages are clipped to +-1 V (TK042_VMAX) when output.
 //
-//  Respuestas a una trama, en este orden
-//    WARN:NPTS_CLIPPED_TO_MAX   NCYC x NPTS > 512, se ha bajado NPTS
-//                               (en OLD, NCYC > 512 y se ha bajado NCYC)
-//    WARN:FREQ_CLIPPED_TO_MIN   F < 1 Hz en SIN/TRI, se usa 1 Hz
-//    WARN:VOLTAGE_CLIP_1V       la señal pasa de 1 V, se recortarán los picos
-//    OK:SIN | OK:TRI | OK:PUL | OK:OLD   trama aceptada, empieza la medida
-//    ERR:UNKNOWN_TYPE           TYPE no reconocido, no se mide nada
-//    Los WARN son solo avisos: la medida arranca igual.
+//  Replies to a frame, in this order
+//    WARN:NPTS_CLIPPED_TO_MAX   NCYC x NPTS > 512, NPTS has been reduced
+//                               (in OLD, NCYC > 512 and NCYC has been reduced)
+//    WARN:FREQ_CLIPPED_TO_MIN   F < 1 Hz in SIN/TRI, 1 Hz is used
+//    WARN:VOLTAGE_CLIP_1V       the signal goes beyond 1 V, peaks will be clipped
+//    OK:SIN | OK:TRI | OK:PUL | OK:OLD   frame accepted, measurement starts
+//    ERR:UNKNOWN_TYPE           TYPE not recognised, nothing is measured
+//    WARNs are only warnings: the measurement starts anyway.
 //
-//  Datos, una sola vez al terminar todos los ciclos
+//  Data, sent once when all cycles are done
 //    DATA:t0,ch0,ch1;t1,ch0,ch1;...;END
-//    t        us desde el inicio de la señal (acumulado entre ciclos)
-//    ch0,ch1  tensión en V del MCP3304, canales 0 y 1, con 4 decimales.
-//             Llevan signo negativo en los semiciclos negativos (ver
-//             storeSample()). En OLD hay una muestra por pulso.
-//    Cada ciclo tiene además un timeout de 10 s (PERIOD_TIMEOUT_US).
+//    t        us since the start of the signal (accumulated across cycles)
+//    ch0,ch1  MCP3304 voltage in V, channels 0 and 1, with 4 decimals.
+//             Negative sign during negative half-cycles (see
+//             storeSample()). In OLD there is one sample per pulse.
+//    Each cycle also has a 10 s timeout (PERIOD_TIMEOUT_US).
 //
-//  Modo test (TEST_MODE)
-//    Descomentando "#define TEST_MODE" (más abajo) no se lee el MCP3304: cada
-//    muestra se inventa a partir de la tensión pedida al DAC más ruido
-//    aleatorio (ch1 al 75 % de ch0). Sirve para probar las tramas y la web
-//    sin el chip. Se activa al compilar, no por trama, y viene desactivado.
-//    No confundir con el modo test del propio integrado.
+//  Test mode (TEST_MODE)
+//    Uncommenting "#define TEST_MODE" (below) skips reading the MCP3304: each
+//    sample is made up from the voltage requested from the DAC plus random
+//    noise (ch1 at 75 % of ch0). Useful for testing the frames and the web
+//    app without the chip. It is enabled at compile time, not by a frame,
+//    and it is off by default.
+//    Not to be confused with the chip's own test mode.
 //
-//  Cosas que se me suelen olvidar :)
-//   · El buffer son 512 muestras. NCYC x NPTS no puede pasar de ahí; si se
-//     pasa, se recorta NPTS y con aviso WARN:NPTS_CLIPPED_TO_MAX.
-//   · El TK042 no aguanta más de 1.5 V en la entrada de control. La web ya lo
-//     limita, pero una trama escrita a mano por la consola se salta ese
-//     filtro, así que dacWrite() clippea por su cuenta a 1V (-0.5V por seguridad).
-//   · OLD es el modo que se usaba en una version antigua del chip viejo.
-//     En PUL_OLD EC no habilita nada, ES como el interruptor haciendo los pulsos.
-//     Está explicado entero en el case 'O' de generateAndSample().
-//   · El bucle tarda unos 350 us por vuelta y eso condiciona todo: cuántas
-//     muestras se pueden pedir, lo corto que puede ser un pulso de EC y el
-//     instante en que cae cada muestra.
-//   · El osciloscopio de la web no tiene protocolo propio, manda tramas
-//     normales pequeñas en bucle.
+//  Things I tend to forget :)
+//   · The buffer holds 512 samples. NCYC x NPTS cannot exceed that; if it
+//     does, NPTS is reduced and WARN:NPTS_CLIPPED_TO_MAX is sent.
+//   · The TK042 cannot take more than 1.5 V on its control input. The web
+//     app already limits it, but a frame typed by hand in the console skips
+//     that filter, so dacWrite() clips to 1 V on its own (0.5 V of margin
+//     for safety).
+//   · OLD is the mode used with an older version of the chip.
+//     In OLD, EC doesn't enable anything, it IS the switch making the pulses.
+//     It is fully explained in case 'O' of generateAndSample().
+//   · The loop takes about 350 us per iteration and that conditions
+//     everything: how many samples can be requested, how short an EC pulse
+//     can be, and the instant at which each sample is taken.
+//   · The web app's oscilloscope has no protocol of its own, it sends
+//     small normal frames in a loop.
 // ═══════════════════════════════════════════════════════════════
 
 #include <math.h>
 #include <SPI.h>
 
-// ── Modo test ────────────────────────────────────────────────
-// Este modo test no es el el modo test que hay en el integrado
-// (lo sé, podria haber buscado otro nombre). Durante el desarollo
-// del proyecto tenia que poder ir pobando las cosas entonces este
-// TEST_MODE ejecutaba un modo "random" de datos para poder verificar
-// si las tramas llegaban bien o no. Lo borraria, pero me ha servido mucho
-// asi que se queda para el recuerdo.
+// ── Test mode ────────────────────────────────────────────────
+// This test mode is not the test mode built into the chip
+// (I know, I could have picked another name). During development
+// I needed to be able to try things out, so this TEST_MODE produced
+// "random" data to check whether the frames arrived correctly.
+// I would delete it, but it has been very useful, so it stays as a
+// keepsake.
 
-// Comenta esta línea para usar el ADC real
+// Uncomment this line to use simulated data instead of the real ADC
 // #define TEST_MODE
 
-// ── Configuración hardware ───────────────────────────────────
+// ── Hardware configuration ───────────────────────────────────
 #define DAC_PORT PORTA
 #define DAC_DDR DDRA
 #define PIN_SM1 32
@@ -129,85 +131,85 @@
 #define ADC_CS 53
 #define BAUD 2000000
 
-// ── Rango del DAC ────────────────────────────────────────────
+// ── DAC range ────────────────────────────────────────────────
 #define DAC_MIN 0
 #define DAC_MAX 255
 #define V_REF 5.0
 
-// ── Límite del TK042 ──────────────────────────────────────────
-// Tope de la entrada de control. dacWrite() recorta aquí pase lo que
-// pase, aunque la trama pida más.
-// Lo dicho, esta en 1V por seguridad, poner 1.5V seria jugarsela
+// ── TK042 limit ──────────────────────────────────────────────
+// Ceiling for the control input. dacWrite() clips here no matter
+// what, even if the frame asks for more.
+// As said above, it is 1 V for safety; 1.5 V would be pushing our luck
 #define TK042_VMAX 1.0
 
-// ── Adquisición ──────────────────────────────────────────────
-// Muestras totales de una señal, sumando todos sus ciclos.
-// 512 x 8 bytes = 4 KB, la mitad de la SRAM del Mega.
+// ── Acquisition ──────────────────────────────────────────────
+// Total samples of one signal, adding up all its cycles.
+// 512 x 8 bytes = 4 KB, half of the Mega's SRAM.
 #define MAX_SAMPLES 512
 
 // ═══════════════════════════════════════════════════════════════
-//  VARIABLES GLOBALES
+//  GLOBAL VARIABLES
 // ═══════════════════════════════════════════════════════════════
 char sigType = ' ';
 
-// Sinusoidal
+// Sine
 float sin_freq = 1.0;
 float sin_amp = 2.0;
 float sin_off = 0.0;
 
-// Triangular
+// Triangle
 float tri_freq = 1.0;
 float tri_vmax = 1.0;
 float tri_vmin = -1.0;
 
-// Pulsos
+// Pulses
 float pul_vhi = 4.0;
 float pul_vlo = 0.0;
 unsigned long pul_dur = 500;
 unsigned long pul_per = 10000;
 
-// Pulsos por EC (chip antiguo)(Tambien funciona en el nuevo, lo de antiguo se ha quedado por el nombre). 
-// Aquí no hay tensión de ningún tipo, el DAC se
-// queda a cero y la señal es el propio PIN_EC conmutando. Los dos tiempos se
-// guardan en us, igual que en pulsos, aunque T2 llegue en ms.
+// EC pulses (old chip) (it also works on the new one; "old" just stuck as
+// the name).
+// There is no voltage of any kind here: the DAC stays at zero and the
+// signal is PIN_EC itself switching. Both times are stored in us, as in
+// pulses, even though T2 arrives in ms.
 unsigned long old_t1 = 500;
 unsigned long old_t2 = 10000;
 
-// Estado anterior de EC, para pillar su flanco de bajada, que es donde se
-// toma la muestra. Se reinicia en loop() al arrancar una señal 'O'.
+// Previous EC state, to catch its falling edge, which is where the sample
+// is taken. Reset in loop() when an 'O' signal starts.
 bool old_ecPrev = false;
 
-// micros() de la última muestra. Sirve para "datar"/"fechar" (no se como explicarlo)
-// la siguiente, porque aquí
-// el hueco entre muestras es un T2 entero y no una vuelta del bucle.
+// micros() of the last sample. Used to timestamp the next one, because
+// here the gap between samples is a whole T2, not one loop iteration.
 unsigned long old_lastSampleUs = 0;
 
 // Config
 int sel_mem = 1;
 char cfg_int[3] = "11";
 int n_cycles = 1;
-int n_points = 512;  // Número de puntos por ciclo (llega como NPTS en la trama)
+int n_points = 512;  // Number of points per cycle (arrives as NPTS in the frame)
 
-// Tiempo
+// Time
 float phaseAccum = 0.0;
 unsigned long lastMicros = 0;
 unsigned long signalStart = 0;
-unsigned long sampleTimeAccum = 0;  // suma de los dt, hace de reloj de la señal
-unsigned long DTMax = 0;            // hueco entre muestras (us) = periodo / n_points
+unsigned long sampleTimeAccum = 0;  // sum of the dt values, acts as the signal clock
+unsigned long DTMax = 0;            // gap between samples (us) = period / n_points
 
-// Buffer serie
+// Serial buffer
 char rxBuf[128];
 int rxIdx = 0;
 
-// Última lectura de cada canal, en cuentas del ADC y con signo (-4095..4095).
-// El signo lo pone storeSample() en los semiciclos negativos.
+// Last reading of each channel, in ADC counts and signed (-4095..4095).
+// The sign is set by storeSample() during negative half-cycles.
 int16_t adc_ch0 = 0;
 int16_t adc_ch1 = 0;
 
-// Aquí se van acumulando las muestras de todos los ciclos, y no se manda nada
-// hasta el final. Se guardan en cuentas y no en voltios para que la rutina de
-// muestreo sea lo más corta posible; la división la hace sendData(), una vez
-// por muestra y ya sin prisa.
+// Samples from all cycles accumulate here, and nothing is sent until the
+// end. They are stored in counts, not volts, so that the sampling routine
+// is as short as possible; the division is done by sendData(), once per
+// sample and with no hurry.
 struct Sample {
   unsigned long t;
   int16_t ch0;
@@ -218,20 +220,20 @@ int sampleCount = 0;
 
 // ═══════════════════════════════════════════════════════════════
 //  dacWrite()
-//  Saca un voltaje por la escalera. El signo va aparte, en SM2, porque la
-//  escalera solo sabe hacer tensiones positivas.
-//    SM2 alto  = sentido directo  (MEM1/MEM2 -> MEMC)
-//    SM2 bajo  = sentido inverso  (MEMC -> MEM1/MEM2)
+//  Outputs a voltage through the ladder. The sign goes separately, on SM2,
+//  because the ladder can only produce positive voltages.
+//    SM2 high  = forward direction  (MEM1/MEM2 -> MEMC)
+//    SM2 low   = reverse direction  (MEMC -> MEM1/MEM2)
 //
-//  El +0.5 es necesario: Al convertir a uint8_t, C++ no
-//  redondea sino que tira los decimales, así que 51.9 y 51.1 acababan los dos
-//  en 51 y la escalera sacaba de media medio escalón de menos, unos 9.8 mV.
-//  Sumando 0.5 antes de truncar, unas veces sobra y otras falta, y la media
-//  se queda en cero. Importa bastante, porque la app calcula K con la
-//  tensión que pidió y no con la que salió, y ese sesgo le bajaba la K un
-//  1.8 %. Ahora se queda en el 0.03 %.
+//  The +0.5 is needed: when converting to uint8_t, C++ does not round, it
+//  drops the decimals, so 51.9 and 51.1 both ended up as 51 and the ladder
+//  output was on average half a step too low, about 9.8 mV.
+//  Adding 0.5 before truncating, sometimes it's over and sometimes under,
+//  and the average stays at zero. It matters a lot, because the app
+//  computes K with the voltage it requested, not the one that came out, and
+//  that bias lowered K by 1.8 %. Now it stays at 0.03 %.
 //
-//  El byte no puede desbordar: con el recorte a 1 V el código más alto es 51.
+//  The byte cannot overflow: with the 1 V clip the highest code is 51.
 // ═══════════════════════════════════════════════════════════════
 uint8_t dacWrite_val;
 
@@ -246,15 +248,15 @@ void dacWrite(float volts) {
 
 // ═══════════════════════════════════════════════════════════════
 //  PARSER
-// El Parser es como se le llama a la busqueda de datos de la trama
-// Para guardar X dato en su variable correspondiente.
-// (La verdad es que no tenia ni idea de que se llamaba asi, gracias Rodrigo supongo)
+// The parser is what searches the frame for each piece of data
+// and stores it in its corresponding variable.
+// (To be honest I had no idea it was called that, thanks Rodrigo I guess)
 // ═══════════════════════════════════════════════════════════════
-// findKey() devuelve un puntero al valor de la clave, o NULL si no está.
-// Solo vale si la clave es un campo entero: tiene que estar al principio de
-// la trama o justo después de una coma, y seguida de ':'. Antes se buscaba
-// "F:" a secas con strstr(), y eso también casaba dentro de "OFF:", así que
-// si el OFF iba antes que el F se leía el offset como frecuencia.
+// findKey() returns a pointer to the key's value, or NULL if it is absent.
+// It only matches the key as a whole field: it must be at the start of the
+// frame or right after a comma, and followed by ':'. Previously "F:" was
+// searched for with plain strstr(), which also matched inside "OFF:", so
+// if OFF came before F the offset was read as the frequency.
 const char* findKey(const char* frame, const char* key) {
   size_t n = strlen(key);
   const char* p = frame;
@@ -295,32 +297,32 @@ void parseFrame(const char* frame) {
   sel_mem = (int)memVal;
   PARSE_STR(frame, "INT", cfg_int);
   digitalWrite(PIN_SM1, sel_mem == 1 ? HIGH : LOW);
-  // M0/M1 eligen el espejo de corriente. Solo se tocan al llegar una trama
-  // nueva, nunca dentro del bucle de muestreo.
+  // M0/M1 select the current mirror. They are only touched when a new
+  // frame arrives, never inside the sampling loop.
   digitalWrite(PIN_M0, cfg_int[0] == '1' ? HIGH : LOW);
   digitalWrite(PIN_M1, cfg_int[1] == '1' ? HIGH : LOW);
 
   PARSE_STR(frame, "TYPE", type);
 
-  // NCYC y NPTS los llevan las cuatro señales, así que se leen y se validan
-  // aquí una vez y no en cada case.
+  // All four signals carry NCYC and NPTS, so they are read and validated
+  // here once rather than in every case.
   PARSE_LONG(frame, "NCYC", cyc);
   n_cycles = (int)cyc;
   PARSE_LONG(frame, "NPTS", pts);
   n_points = (int)pts;
 
-  if (n_cycles < 1) n_cycles = 1;  // si no, más abajo se divide entre cero
+  if (n_cycles < 1) n_cycles = 1;  // otherwise there is a division by zero further down
   if (type[0] == 'O') {
-    // Aquí sale una muestra por pulso, así que lo que limita el buffer es
-    // directamente el número de pulsos. NPTS se lee para no romper el formato
-    // de la trama, pero en esta señal no se usa.
+    // Here there is one sample per pulse, so what limits the buffer is
+    // directly the number of pulses. NPTS is read so as not to break the
+    // frame format, but it is not used for this signal.
     if (n_cycles > MAX_SAMPLES) {
       n_cycles = MAX_SAMPLES;
       Serial.println("WARN:NPTS_CLIPPED_TO_MAX");
     }
   } else if ((long)n_cycles * (long)n_points > MAX_SAMPLES) {
-    // Si no caben, en vez de rechazar la señal se recortan los puntos por
-    // ciclo, se avisa y se arranca igual.
+    // If they don't fit, instead of rejecting the signal the points per
+    // cycle are reduced, a warning is sent and it starts anyway.
     n_points = MAX_SAMPLES / n_cycles;
     if (n_points < 1) n_points = 1;
     Serial.println("WARN:NPTS_CLIPPED_TO_MAX");
@@ -335,14 +337,14 @@ void parseFrame(const char* frame) {
         PARSE_FLOAT(frame, "OFF", sin_off);
         sin_freq = fabs(sin_freq);
         if (sin_freq < 1.0) {
-          sin_freq = 1.0;  // mínimo 1 Hz, como el deslizador de la web
+          sin_freq = 1.0;  // 1 Hz minimum, like the web app's slider
           Serial.println("WARN:FREQ_CLIPPED_TO_MIN");
         }
-        // si se pasa de 1 V, dacWrite() va a recortar los picos. Que se sepa.
+        // if it goes over 1 V, dacWrite() will clip the peaks. Let it be known.
         if (fabs(sin_off) + sin_amp > TK042_VMAX) {
           Serial.println("WARN:VOLTAGE_CLIP_1V");
         }
-        // el periodo en us es 1e6/freq, y esto lo reparte entre los puntos
+        // the period in us is 1e6/freq, and this splits it among the points
         DTMax = (unsigned long)((1e6 / sin_freq) / n_points);
         sigType = 'S';
         Serial.println("OK:SIN");
@@ -356,10 +358,10 @@ void parseFrame(const char* frame) {
         PARSE_FLOAT(frame, "VMIN", tri_vmin);
         tri_freq = fabs(tri_freq);
         if (tri_freq < 1.0) {
-          tri_freq = 1.0;  // mínimo 1 Hz, como el deslizador de la web
+          tri_freq = 1.0;  // 1 Hz minimum, like the web app's slider
           Serial.println("WARN:FREQ_CLIPPED_TO_MIN");
         }
-        // igual que arriba, si se sale de 1 V se recorta
+        // same as above, if it goes beyond 1 V it gets clipped
         if (tri_vmax > TK042_VMAX || tri_vmin < -TK042_VMAX) {
           Serial.println("WARN:VOLTAGE_CLIP_1V");
         }
@@ -377,36 +379,36 @@ void parseFrame(const char* frame) {
         PARSE_LONG(frame, "PER", per);
         pul_dur = (unsigned long)dur;
         pul_per = (unsigned long)per * 1000;
-        // igual que arriba, si se sale de 1 V se recorta
+        // same as above, if it goes beyond 1 V it gets clipped
         if (pul_vhi > TK042_VMAX || pul_vlo < -TK042_VMAX) {
           Serial.println("WARN:VOLTAGE_CLIP_1V");
         }
-        // aquí el periodo ya está en us, no hay que convertirlo
+        // here the period is already in us, no conversion needed
         DTMax = pul_per / n_points;
         sigType = 'P';
         Serial.println("OK:PUL");
         break;
       }
 
-    // Chip antiguo: la señal la hace EC, no el DAC. TYPE:OLD y no algo que
-    // empiece por 'P' o 'S' porque el switch despacha por type[0] y esas
-    // letras ya están cogidas por PUL y SIN. Asi que nos viene genial llamarle 
-    // viejo jaja
+    // Old chip: the signal is made by EC, not the DAC. TYPE:OLD and not
+    // something starting with 'P' or 'S' because the switch dispatches on
+    // type[0] and those letters are already taken by PUL and SIN. So calling
+    // it "old" suits us perfectly haha
     case 'O':
       {
         PARSE_LONG(frame, "T1", oldT1);
         PARSE_LONG(frame, "T2", oldT2);
         if (oldT1 < 1) oldT1 = 1;
-        if (oldT2 < 1) oldT2 = 1;              // T2 mínimo 1 ms: un periodo de cero no da ni una iteración
-        old_t1 = (unsigned long)oldT1;         // T1 llega en µs
-        old_t2 = (unsigned long)oldT2 * 1000;  // T2 llega en ms
-        if (old_t1 > old_t2) old_t1 = old_t2;  // el pulso no puede durar más que el periodo
-        // No se leen tensiones: esta señal no las tiene. Tampoco hace falta el
-        // aviso WARN:VOLTAGE_CLIP_1V, porque el DAC no se toca.
-        // DTMax NO se usa en esta señal: el muestreo periódico está desactivado
-        // y la muestra la dispara el flanco de bajada de EC (una por pulso). Se
-        // pone a cero para dejar claro que no queda ningún valor heredado de la
-        // señal anterior gobernando nada.
+        if (oldT2 < 1) oldT2 = 1;              // T2 min. 1 ms: a zero period gives not even one iteration
+        old_t1 = (unsigned long)oldT1;         // T1 arrives in µs
+        old_t2 = (unsigned long)oldT2 * 1000;  // T2 arrives in ms
+        if (old_t1 > old_t2) old_t1 = old_t2;  // the pulse cannot last longer than the period
+        // No voltages are read: this signal has none. Nor is the
+        // WARN:VOLTAGE_CLIP_1V warning needed, because the DAC is not touched.
+        // DTMax is NOT used for this signal: periodic sampling is disabled
+        // and the sample is triggered by EC's falling edge (one per pulse).
+        // It is set to zero to make clear that no value inherited from the
+        // previous signal is controlling anything.
         DTMax = 0;
         sigType = 'O';
         Serial.println("OK:OLD");
@@ -437,13 +439,13 @@ void readSerial() {
 
 // ═══════════════════════════════════════════════════════════════
 //  generateAndSample()
-//  Escribe un punto de la señal en cada llamada, siempre. El ADC en cambio
-//  solo se lee cada DTMax microsegundos, que es el hueco que hace falta para
-//  que salgan n_points muestras repartidas por el periodo.
+//  Writes one point of the signal on every call, always. The ADC, on the
+//  other hand, is only read every DTMax microseconds, which is the gap
+//  needed for n_points samples to be spread over the period.
 //
-//  Que la escritura vaya en todas las vueltas y el muestreo no es lo que
-//  permite subir de frecuencia sin estropear la forma de onda. Aunque se pierden
-//  muestras, la señal que ve el chip sigue siendo la buena.
+//  Writing on every iteration but not sampling on every one is what allows
+//  higher frequencies without spoiling the waveform. Even if samples are
+//  lost, the signal the chip sees is still the right one.
 // ═══════════════════════════════════════════════════════════════
 unsigned long DT = 0;
 unsigned long now;
@@ -452,24 +454,25 @@ float outVolts;
 float range;
 float phaseFrac;
 unsigned long tInPeriod;
-bool old_ecNow;  // nivel que le toca a EC en esta iteración (solo señal 'O')
+bool old_ecNow;  // level EC should have in this iteration ('O' signal only)
 
 void generateAndSample() {
   now = micros();
   dt = now - lastMicros;
   outVolts = 0.0;
 
-  // lastMicros se actualiza siempre, sea cual sea el tipo de señal
+  // lastMicros is always updated, whatever the signal type
   lastMicros = now;
 
   switch (sigType) {
 
-      // phaseAccum solo crece, nunca se le resta 1 al pasarse. Para el voltaje
-      // se usa su parte decimal y ya está. Restarle 1 es lo que colgaba el
-      // Arduino a frecuencias altas, porque si una vuelta del bucle avanza más
-      // de un periodo entero, restar 1 una vez no basta y runOnePeriod() se
-      // queda esperando un fin de periodo que ya no llega.
-      // No se ni porque, pero Rodrigo lo cambio y funciona asi que NO TOCAR
+      // phaseAccum only grows; 1 is never subtracted when it wraps. Its
+      // fractional part is used for the voltage and that's it. Subtracting 1
+      // is what hung the Arduino at high frequencies, because if one loop
+      // iteration advances more than a whole period, subtracting 1 once is
+      // not enough and runOnePeriod() keeps waiting for an end of period
+      // that never comes.
+      // I don't even know why, but Rodrigo changed it and it works, so DO NOT TOUCH
 
     case 'S':
       {
@@ -499,10 +502,11 @@ void generateAndSample() {
         break;
       }
 
-    // Cuenta el tiempo igual que 'P', pero lo que conmuta es EC y no hay
-    // tensión que sacar. Una muestra por pulso, en el flanco de bajada, que
-    // es lo que pide el fabricante. Como el bucle da una vuelta cada ~350 us,
-    // la muestra cae en la vuelta siguiente al flanco, con ese retardo.
+    // Keeps time the same way as 'P', but what switches is EC and there is
+    // no voltage to output. One sample per pulse, on the falling edge, which
+    // is what the manufacturer asks for. Since the loop does one iteration
+    // every ~350 us, the sample lands on the iteration after the edge, with
+    // that delay.
     case 'O':
       {
         tInPeriod += dt;
@@ -510,8 +514,9 @@ void generateAndSample() {
         old_ecNow = (tInPeriod < old_t1);
         digitalWrite(PIN_EC, old_ecNow ? HIGH : LOW);
         if (old_ecPrev && !old_ecNow) {
-          // 0 V porque aquí no hay tensión, y el dt es el que ha corrido desde
-          // la muestra anterior, un T2 entero, no el de esta vuelta del bucle.
+          // 0 V because there is no voltage here, and the dt is the time
+          // elapsed since the previous sample, a whole T2, not this loop
+          // iteration's.
           storeSample(0.0, now - old_lastSampleUs);
           old_lastSampleUs = now;
         }
@@ -524,12 +529,12 @@ void generateAndSample() {
       break;
   }
 
-  // En 'O' el DAC no se escribe. loop() lo ha dejado a cero antes de empezar
-  // y ahí se queda toda la generación.
+  // In 'O' the DAC is not written. loop() set it to zero before starting
+  // and it stays there for the whole generation.
   if (sigType != 'O') dacWrite(outVolts);
 
-  // El muestreo por DTMax vale para las tres señales del DAC. En 'O' está
-  // apagado, que allí la muestra la dispara el flanco dentro del case.
+  // DTMax-based sampling applies to the three DAC signals. In 'O' it is
+  // off, since there the sample is triggered by the edge inside the case.
   if (sigType != 'O') {
     DT += dt;
     if (DT >= DTMax) {
@@ -541,11 +546,11 @@ void generateAndSample() {
 
 // ═══════════════════════════════════════════════════════════════
 //  MCP3304
-//  Tres bytes por lectura, alineados según la Figura 6-4 del DS21697F.
-//  Ojo, la trama del MCP3208 aquí no vale: este devuelve un bit más y su
-//  ventana de datos empieza antes, así que con la del 3208 sale la mitad.
+//  Three bytes per reading, aligned according to Figure 6-4 of DS21697F.
+//  Careful, the MCP3208 frame does not work here: this one returns one more
+//  bit and its data window starts earlier, so with the 3208 one you get half.
 //
-//   ciclo  1 2 3 4   5      6     7  8 │ 9 10  11    12   13..16 │ 17..24
+//   cycle  1 2 3 4   5      6     7  8 │ 9 10  11    12   13..16 │ 17..24
 //   MOSI   0 0 0 0 START SGL/DIFF D2 D1│D0  X   X     X     X    │   X
 //   MISO   ? ? ? ?   ?      ?     ?  ? │ ?  ?  NULL   SB  B11..B8│ B7..B0
 // ═══════════════════════════════════════════════════════════════
@@ -556,9 +561,9 @@ uint8_t mcp3304Read_lo;
 uint16_t mcp3304Read_raw;
 
 int mcp3304Read(uint8_t channel) {
-  // 0x0C = 0000 1100, o sea los ceros, el start bit y el modo single-ended
+  // 0x0C = 0000 1100, i.e. the zeros, the start bit and single-ended mode
   mcp3304Read_b0 = 0x0C;
-  // el bit de canal va en el bit 7 del segundo byte
+  // the channel bit goes in bit 7 of the second byte
   mcp3304Read_b1 = (channel == 1) ? 0x80 : 0x00;
   digitalWrite(ADC_CS, LOW);
   SPI.transfer(mcp3304Read_b0);
@@ -572,12 +577,13 @@ int mcp3304Read(uint8_t channel) {
 
 // ═══════════════════════════════════════════════════════════════
 //  storeSample()
-//  Guarda la lectura en cuentas, sin pasarla a voltios, para que esto sea lo
-//  más rápido posible. Ya lo divide sendData() al final.
+//  Stores the reading in counts, without converting to volts, so this is
+//  as fast as possible. sendData() does the division at the end.
 //
-//  V01 y V02 son pines fijos del chip, así que invertir la corriente no
-//  cambia qué nodo ve cada canal, solo cuál queda más alto. De eso se encarga
-//  el signo, y cada canal sale siempre de su propia lectura.
+//  V01 and V02 are fixed pins of the chip, so reversing the current does
+//  not change which node each channel sees, only which one ends up higher.
+//  The sign takes care of that, and each channel always comes from its own
+//  reading.
 // ═══════════════════════════════════════════════════════════════
 int storeSample_noise0;
 int storeSample_noise1;
@@ -587,16 +593,16 @@ int16_t storeSample_raw1;
 bool storeSample_neg;
 
 void storeSample(float dacVolts, unsigned long dt) {
-  // acumulado, para que la marca de tiempo sea desde el inicio de la señal
+  // accumulated, so the timestamp is measured from the start of the signal
   sampleTimeAccum += dt;
 
   storeSample_neg = (dacVolts < 0);
 
 #ifdef TEST_MODE
-  // Simulamos un valor RAW de ADC (0-4095) a partir del voltaje del DAC,
-  // con ruido entero para que los ciclos se vean distintos entre sí.
-  // (fabs: el nodo físico siempre ve la magnitud, el signo va aparte)
-  // Lo dicho, lo dejamos aqui, pero era algo hecho por puro debuggeo
+  // Simulate a RAW ADC value (0-4095) from the DAC voltage, with integer
+  // noise so the cycles look different from each other.
+  // (fabs: the physical node always sees the magnitude, the sign goes separately)
+  // As said, we leave it here, but it was done purely for debugging
   storeSample_dacRaw = (int16_t)((fabs(dacVolts) / V_REF) * 4095.0);
   storeSample_noise0 = random(-250, 250);
   storeSample_noise1 = random(-330, 330);
@@ -607,7 +613,7 @@ void storeSample(float dacVolts, unsigned long dt) {
   storeSample_raw1 = mcp3304Read(1);
 #endif
 
-  // cada canal, su lectura. Lo único que cambia es el signo.
+  // each channel, its own reading. The only thing that changes is the sign.
   adc_ch0 = storeSample_neg ? -storeSample_raw0 : storeSample_raw0;
   adc_ch1 = storeSample_neg ? -storeSample_raw1 : storeSample_raw1;
 
@@ -621,8 +627,8 @@ void storeSample(float dacVolts, unsigned long dt) {
 
 // ═══════════════════════════════════════════════════════════════
 //  sendData()
-//  Suelta todas las muestras de golpe, DATA:t,ch0,ch1;...;END
-//  Aquí se pasa de cuentas a voltios, que a estas alturas ya no corre prisa.
+//  Sends all the samples at once, DATA:t,ch0,ch1;...;END
+//  Counts are converted to volts here, when there is no longer any hurry.
 // ═══════════════════════════════════════════════════════════════
 int sendData_i;
 float sendData_v0;
@@ -645,15 +651,15 @@ void sendData() {
 
 // ═══════════════════════════════════════════════════════════════
 //  runOnePeriod()
-//  Un periodo de la señal, con sus muestras. El periodo se acaba cuando la
-//  fase llega a 1, y como la fase solo crece el bucle sale siempre, aunque
-//  una vuelta avance más de un periodo entero. El timeout de diez segundos
-//  es el último cortafuegos para que el Arduino no se quede sordo al puerto
-//  serie pase lo que pase con la trama que le hayan mandado.
+//  One period of the signal, with its samples. The period ends when the
+//  phase reaches 1, and since the phase only grows the loop always exits,
+//  even if one iteration advances more than a whole period. The ten-second
+//  timeout is the last safeguard so the Arduino never stops listening to
+//  the serial port, whatever frame it has been sent.
 // ═══════════════════════════════════════════════════════════════
 #define PERIOD_TIMEOUT_US 10000000UL
 
-int runOnePeriod_n0;  // sampleCount al entrar en el periodo (solo señal 'O')
+int runOnePeriod_n0;  // sampleCount on entering the period ('O' signal only)
 
 void runOnePeriod() {
   signalStart = micros();
@@ -667,21 +673,21 @@ void runOnePeriod() {
       if (micros() - signalStart > PERIOD_TIMEOUT_US) break;
     }
   } else if (sigType == 'P') {
-    // En pulsos el periodo es PER, sin fases ni nada
+    // For pulses the period is PER, no phases or anything
     while (micros() - signalStart < pul_per) {
       generateAndSample();
       if (micros() - signalStart > PERIOD_TIMEOUT_US) break;
     }
   } else if (sigType == 'O') {
-    // Aquí un periodo es un pulso, o sea T2. Cada uno deja exactamente una
-    // muestra, la del flanco de bajada, así que al final del tren hay NCYC.
+    // Here one period is one pulse, i.e. T2. Each one leaves exactly one
+    // sample, the falling-edge one, so at the end of the train there are NCYC.
     runOnePeriod_n0 = sampleCount;
     while (micros() - signalStart < old_t2) {
       generateAndSample();
       if (micros() - signalStart > PERIOD_TIMEOUT_US) break;
     }
-    // Red de seguridad. Si el periodo se acaba con EC todavía alto, el flanco
-    // no se ha llegado a ver y ese pulso se quedaría sin muestra.
+    // Safety net. If the period ends with EC still high, the edge was never
+    // seen and that pulse would be left without a sample.
     if (old_ecPrev && sampleCount == runOnePeriod_n0) {
       digitalWrite(PIN_EC, LOW);
       old_ecPrev = false;
@@ -700,9 +706,9 @@ void setup() {
   pinMode(PIN_SM1, OUTPUT);
   pinMode(PIN_SM2, OUTPUT);
   digitalWrite(PIN_SM1, HIGH);
-  digitalWrite(PIN_SM2, HIGH);  // en reposo, sentido directo
+  digitalWrite(PIN_SM2, HIGH);  // at rest, forward direction
   pinMode(PIN_EC, OUTPUT);
-  digitalWrite(PIN_EC, LOW);  // sin corriente hasta recibir una trama
+  digitalWrite(PIN_EC, LOW);  // no current until a frame is received
   pinMode(PIN_M0, OUTPUT);
   pinMode(PIN_M1, OUTPUT);
   pinMode(ADC_CS, OUTPUT);
@@ -719,31 +725,33 @@ void loop() {
 
   if (sigType == ' ') return;
 
-  // n_cycles periodos seguidos, acumulando muestras y sin mandar nada
+  // n_cycles consecutive periods, accumulating samples without sending anything
   sampleCount = 0;
   sampleTimeAccum = 0;
-  // En las tres del DAC, EC es la habilitación y va alto toda la señal. En 'O'
-  // no, que ahí EC ES la señal: forzarlo alto aquí lo dejaría clavado.
-  // SM2 sí hay que fijarlo a mano, porque el único que lo escribe es dacWrite()
-  // y aquí no se llama. Si no, se queda con lo que dejara la señal anterior y
-  // el tren sale con la corriente al revés sin avisar.
+  // For the three DAC signals, EC is the enable and stays high for the whole
+  // signal. Not in 'O', where EC IS the signal: forcing it high here would
+  // leave it stuck.
+  // SM2 does need to be set by hand, because the only one that writes it is
+  // dacWrite() and it isn't called here. Otherwise it keeps whatever the
+  // previous signal left and the train goes out with the current reversed
+  // without warning.
   if (sigType == 'O') {
     DAC_PORT = 0x00;
     digitalWrite(PIN_SM2, HIGH);
-    // EC en bajo, para que el primer flanco que se vea sea el del primer pulso
+    // EC low, so the first edge seen is the one from the first pulse
     digitalWrite(PIN_EC, LOW);
     old_ecPrev = false;
-    old_lastSampleUs = micros();  // origen de tiempos del tren
+    old_lastSampleUs = micros();  // time origin of the train
   } else digitalWrite(PIN_EC, HIGH);
   for (int c = 0; c < n_cycles; c++) {
     runOnePeriod();
   }
 
-  // Ya están todos los ciclos. Se apaga el DAC, se corta la corriente y solo
-  // entonces se manda todo.
+  // All cycles are done. The DAC is switched off, the current is cut, and
+  // only then is everything sent.
   DAC_PORT = 0x00;
   digitalWrite(PIN_EC, LOW);
   sendData();
 
-  sigType = ' ';  // a esperar la siguiente trama
+  sigType = ' ';  // wait for the next frame
 }
